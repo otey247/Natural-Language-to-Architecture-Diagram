@@ -735,14 +735,6 @@ def delete_node(
             status_code=403, detail="Node does not belong to this project"
         )
 
-    edges = session.exec(
-        select(DiagramEdge).where(
-            (DiagramEdge.source_node_id == node_id)
-            | (DiagramEdge.target_node_id == node_id)
-        )
-    ).all()
-    for edge in edges:
-        session.delete(edge)
     session.delete(node)
     project.updated_at = datetime.now(timezone.utc)
     session.add(project)

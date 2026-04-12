@@ -797,6 +797,7 @@ function ArchitectureWorkspace() {
   })
 
   const versions: DiagramVersionPublic[] = versionsData?.data ?? []
+  const currentPrompt = project?.current_prompt ?? ""
 
   const updateResult = useCallback(
     (result: {
@@ -830,10 +831,10 @@ function ArchitectureWorkspace() {
       return
     }
 
-    if (project?.current_prompt) {
-      setPromptHistory([project.current_prompt])
+    if (currentPrompt) {
+      setPromptHistory([currentPrompt])
     }
-  }, [bundle, project?.current_prompt])
+  }, [bundle, currentPrompt])
 
   const generateMutation = useMutation({
     mutationFn: (req: GenerationRequest) =>
@@ -898,7 +899,7 @@ function ArchitectureWorkspace() {
       <LeftPanel
         projectTitle={project.title ?? ""}
         projectId={id}
-        initialPrompt={project.current_prompt ?? ""}
+        initialPrompt={currentPrompt}
         onGenerate={handleGenerate}
         onRefine={handleRefine}
         isPending={isPending}
