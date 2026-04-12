@@ -82,6 +82,7 @@ def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -
 # Project CRUD
 # ---------------------------------------------------------------------------
 
+
 def create_project(
     *, session: Session, project_in: ProjectCreate, owner_id: uuid.UUID
 ) -> Project:

@@ -6,15 +6,14 @@ without requiring an LLM.
 
 from __future__ import annotations
 
-import re
 import uuid
 from dataclasses import dataclass, field
 from typing import NamedTuple
 
-
 # ---------------------------------------------------------------------------
 # Internal data structures
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class RawNode:
@@ -25,7 +24,7 @@ class RawNode:
     x: float = 0.0
     y: float = 0.0
     group: str = "default"
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -60,25 +59,72 @@ class GeneratedDiagram(NamedTuple):
 
 _PROVIDER_KEYWORDS: dict[str, list[str]] = {
     "azure": [
-        "azure", "aks", "app gateway", "application gateway", "azure sql",
-        "cosmos", "cosmosdb", "azure firewall", "azure functions",
-        "service bus", "event hub", "blob storage", "azure monitor",
-        "log analytics", "azure ad", "entra", "vnet", "hub and spoke",
-        "azure container", "acr",
+        "azure",
+        "aks",
+        "app gateway",
+        "application gateway",
+        "azure sql",
+        "cosmos",
+        "cosmosdb",
+        "azure firewall",
+        "azure functions",
+        "service bus",
+        "event hub",
+        "blob storage",
+        "azure monitor",
+        "log analytics",
+        "azure ad",
+        "entra",
+        "vnet",
+        "hub and spoke",
+        "azure container",
+        "acr",
     ],
     "aws": [
-        "aws", "eks", "lambda", "api gateway", "sqs", "sns", "dynamodb",
-        "rds", "s3", "cloudwatch", "cloudfront", "ec2", "ecs", "fargate",
-        "cognito", "kinesis", "elasticache", "aurora", "route53",
+        "aws",
+        "eks",
+        "lambda",
+        "api gateway",
+        "sqs",
+        "sns",
+        "dynamodb",
+        "rds",
+        "s3",
+        "cloudwatch",
+        "cloudfront",
+        "ec2",
+        "ecs",
+        "fargate",
+        "cognito",
+        "kinesis",
+        "elasticache",
+        "aurora",
+        "route53",
     ],
     "gcp": [
-        "gcp", "google cloud", "gke", "cloud run", "bigquery", "pubsub",
-        "pub/sub", "cloud sql", "firestore", "cloud storage", "cloud functions",
-        "stackdriver", "anthos",
+        "gcp",
+        "google cloud",
+        "gke",
+        "cloud run",
+        "bigquery",
+        "pubsub",
+        "pub/sub",
+        "cloud sql",
+        "firestore",
+        "cloud storage",
+        "cloud functions",
+        "stackdriver",
+        "anthos",
     ],
     "on-prem": [
-        "on-prem", "on premise", "on-premises", "datacenter", "data center",
-        "bare metal", "vmware", "hyper-v",
+        "on-prem",
+        "on premise",
+        "on-premises",
+        "datacenter",
+        "data center",
+        "bare metal",
+        "vmware",
+        "hyper-v",
     ],
 }
 
@@ -95,6 +141,7 @@ def detect_provider(text: str) -> str:
 # ---------------------------------------------------------------------------
 # Component detection
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ComponentSpec:
@@ -153,7 +200,13 @@ _COMPONENT_SPECS: list[ComponentSpec] = [
         group="Compute",
         description="Event-driven serverless compute",
         role_summary="Executes code in response to events without managing servers",
-        keywords=["function", "lambda", "cloud function", "serverless", "azure functions"],
+        keywords=[
+            "function",
+            "lambda",
+            "cloud function",
+            "serverless",
+            "azure functions",
+        ],
     ),
     ComponentSpec(
         label="Virtual Machine",
@@ -177,7 +230,16 @@ _COMPONENT_SPECS: list[ComponentSpec] = [
         group="Data Layer",
         description="Relational SQL database",
         role_summary="Stores relational, transactional application data",
-        keywords=["sql", "postgres", "mysql", "mariadb", "azure sql", "aurora", "rds", "cloud sql"],
+        keywords=[
+            "sql",
+            "postgres",
+            "mysql",
+            "mariadb",
+            "azure sql",
+            "aurora",
+            "rds",
+            "cloud sql",
+        ],
     ),
     ComponentSpec(
         label="NoSQL Database",
@@ -185,7 +247,15 @@ _COMPONENT_SPECS: list[ComponentSpec] = [
         group="Data Layer",
         description="NoSQL/document database",
         role_summary="Stores flexible schema document or key-value data",
-        keywords=["nosql", "cosmosdb", "cosmos", "dynamodb", "firestore", "mongodb", "cassandra"],
+        keywords=[
+            "nosql",
+            "cosmosdb",
+            "cosmos",
+            "dynamodb",
+            "firestore",
+            "mongodb",
+            "cassandra",
+        ],
     ),
     ComponentSpec(
         label="Cache",
@@ -201,7 +271,14 @@ _COMPONENT_SPECS: list[ComponentSpec] = [
         group="Data Layer",
         description="Blob / object storage",
         role_summary="Stores unstructured data such as files, images, and backups",
-        keywords=["storage", "blob", "s3", "cloud storage", "object storage", "datalake"],
+        keywords=[
+            "storage",
+            "blob",
+            "s3",
+            "cloud storage",
+            "object storage",
+            "datalake",
+        ],
     ),
     ComponentSpec(
         label="Message Queue",
@@ -217,7 +294,16 @@ _COMPONENT_SPECS: list[ComponentSpec] = [
         group="Messaging",
         description="Enterprise messaging and event streaming",
         role_summary="Provides reliable message delivery and event streaming",
-        keywords=["service bus", "event hub", "eventhub", "kafka", "sns", "pubsub", "pub/sub", "kinesis"],
+        keywords=[
+            "service bus",
+            "event hub",
+            "eventhub",
+            "kafka",
+            "sns",
+            "pubsub",
+            "pub/sub",
+            "kinesis",
+        ],
     ),
     ComponentSpec(
         label="CDN",
@@ -242,9 +328,18 @@ _COMPONENT_SPECS: list[ComponentSpec] = [
         description="Centralized monitoring, logging, and alerting",
         role_summary="Collects metrics, logs, and traces for observability",
         keywords=[
-            "monitoring", "log analytics", "cloudwatch", "stackdriver",
-            "prometheus", "grafana", "datadog", "splunk", "elk", "observability",
-            "logging", "azure monitor",
+            "monitoring",
+            "log analytics",
+            "cloudwatch",
+            "stackdriver",
+            "prometheus",
+            "grafana",
+            "datadog",
+            "splunk",
+            "elk",
+            "observability",
+            "logging",
+            "azure monitor",
         ],
     ),
     ComponentSpec(
@@ -302,22 +397,30 @@ def detect_components(text: str) -> list[ComponentSpec]:
 # Pattern matchers for well-known architecture styles
 # ---------------------------------------------------------------------------
 
+
 def _is_hub_spoke(text: str) -> bool:
     lower = text.lower()
-    return "hub" in lower and ("spoke" in lower or "hub and spoke" in lower or "hub-and-spoke" in lower)
+    return "hub" in lower and (
+        "spoke" in lower or "hub and spoke" in lower or "hub-and-spoke" in lower
+    )
 
 
 def _is_serverless(text: str) -> bool:
     lower = text.lower()
     return "serverless" in lower or (
-        ("lambda" in lower or "function" in lower) and
-        ("event" in lower or "trigger" in lower or "queue" in lower)
+        ("lambda" in lower or "function" in lower)
+        and ("event" in lower or "trigger" in lower or "queue" in lower)
     )
 
 
 def _is_three_tier(text: str) -> bool:
     lower = text.lower()
-    return "3-tier" in lower or "3 tier" in lower or "three-tier" in lower or "three tier" in lower
+    return (
+        "3-tier" in lower
+        or "3 tier" in lower
+        or "three-tier" in lower
+        or "three tier" in lower
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -356,6 +459,7 @@ def assign_positions(nodes: list[RawNode]) -> None:
 # Edge generation heuristics
 # ---------------------------------------------------------------------------
 
+
 def _find_by_type(nodes: list[RawNode], *types: str) -> RawNode | None:
     for n in nodes:
         if n.node_type in types:
@@ -378,7 +482,7 @@ def generate_edges(nodes: list[RawNode]) -> list[RawEdge]:
     def edge(src: RawNode, dst: RawNode, label: str = "") -> None:
         edges.append(RawEdge(source_id=src.id, target_id=dst.id, label=label))
 
-    ingress = _find_by_type(nodes, "cdn", "load_balancer", "api_gateway")
+    _find_by_type(nodes, "cdn", "load_balancer", "api_gateway")
     gateways = _find_all_by_type(nodes, "api_gateway", "load_balancer")
     firewall = _find_by_type(nodes, "firewall")
     computes = _find_all_by_type(nodes, "kubernetes", "serverless", "vm", "app_server")
@@ -394,7 +498,9 @@ def generate_edges(nodes: list[RawNode]) -> list[RawEdge]:
 
     # DNS -> CDN or first ingress
     if dns:
-        target = cdn or (gateways[0] if gateways else (firewall or computes[0] if computes else None))
+        target = cdn or (
+            gateways[0] if gateways else (firewall or computes[0] if computes else None)
+        )
         if target:
             edge(dns, target, "resolve")
 
@@ -476,9 +582,8 @@ def generate_edges(nodes: list[RawNode]) -> list[RawEdge]:
 # Notes generation
 # ---------------------------------------------------------------------------
 
-def generate_notes(
-    provider: str, components: list[ComponentSpec], text: str
-) -> str:
+
+def generate_notes(provider: str, components: list[ComponentSpec], text: str) -> str:
     lines = [
         "# Architecture Notes",
         "",
@@ -550,6 +655,7 @@ def generate_notes(
 # Public entry point
 # ---------------------------------------------------------------------------
 
+
 def generate_architecture(
     prompt: str,
     cloud_context: str | None = None,
@@ -594,7 +700,9 @@ def generate_architecture(
     for spec in specs:
         nodes.append(
             RawNode(
-                label=f"{provider.upper()} {spec.label}" if provider != "generic" else spec.label,
+                label=f"{provider.upper()} {spec.label}"
+                if provider != "generic"
+                else spec.label,
                 node_type=spec.node_type,
                 provider=provider,
                 group=spec.group,

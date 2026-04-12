@@ -1,26 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import {
-  Background,
-  Controls,
-  MiniMap,
-  ReactFlow,
-  useEdgesState,
-  useNodesState,
-  type Edge,
-  type Node,
-} from "@xyflow/react"
-import "@xyflow/react/dist/style.css"
-import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  Cpu,
   Download,
   FileText,
   Maximize2,
   Wand2,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -33,11 +23,12 @@ import type {
   DiagramVersionPublic,
   GenerationRequest,
 } from "@/client/types.gen"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
 
 export const Route = createFileRoute("/_layout/projects/$id")({
   component: ArchitectureWorkspace,
@@ -48,45 +39,37 @@ export const Route = createFileRoute("/_layout/projects/$id")({
 
 // ─── Node styling ─────────────────────────────────────────────────────────────
 
-function nodeStyleByType(type: string): React.CSSProperties {
-  const styles: Record<string, React.CSSProperties> = {
-    networking: { background: "#dbeafe", border: "1px solid #3b82f6" },
-    compute: { background: "#dcfce7", border: "1px solid #22c55e" },
-    database: { background: "#f3e8ff", border: "1px solid #a855f7" },
-    serverless: { background: "#fef9c3", border: "1px solid #eab308" },
-    messaging: { background: "#ffedd5", border: "1px solid #f97316" },
-    storage: { background: "#e0f2fe", border: "1px solid #0ea5e9" },
-    monitoring: { background: "#fce7f3", border: "1px solid #ec4899" },
-    security: { background: "#fee2e2", border: "1px solid #ef4444" },
-    identity: { background: "#f0fdf4", border: "1px solid #86efac" },
-    cache: { background: "#fdf4ff", border: "1px solid #d946ef" },
-  }
-  return styles[type] ?? { background: "#f1f5f9", border: "1px solid #94a3b8" }
+type NodeStyle = {
+  fill: string
+  stroke: string
+  textColor: string
 }
 
-function toReactFlowNode(n: DiagramNodePublic): Node {
-  return {
-    id: n.id,
-    position: { x: n.x_position ?? 0, y: n.y_position ?? 0 },
-    data: { label: n.label, type: n.node_type, provider: n.provider },
-    type: "default",
-    style: nodeStyleByType(n.node_type),
+function nodeStyleByType(type: string): NodeStyle {
+  const styles: Record<string, NodeStyle> = {
+    networking: { fill: "#dbeafe", stroke: "#3b82f6", textColor: "#1e40af" },
+    compute: { fill: "#dcfce7", stroke: "#22c55e", textColor: "#15803d" },
+    database: { fill: "#f3e8ff", stroke: "#a855f7", textColor: "#7e22ce" },
+    serverless: { fill: "#fef9c3", stroke: "#eab308", textColor: "#854d0e" },
+    messaging: { fill: "#ffedd5", stroke: "#f97316", textColor: "#9a3412" },
+    storage: { fill: "#e0f2fe", stroke: "#0ea5e9", textColor: "#0c4a6e" },
+    monitoring: { fill: "#fce7f3", stroke: "#ec4899", textColor: "#9d174d" },
+    security: { fill: "#fee2e2", stroke: "#ef4444", textColor: "#991b1b" },
+    identity: { fill: "#f0fdf4", stroke: "#86efac", textColor: "#14532d" },
+    cache: { fill: "#fdf4ff", stroke: "#d946ef", textColor: "#701a75" },
   }
-}
-
-function toReactFlowEdge(e: DiagramEdgePublic): Edge {
-  return {
-    id: e.id,
-    source: e.source_node_id,
-    target: e.target_node_id,
-    label: e.label ?? undefined,
-    type: "smoothstep",
-  }
+  return (
+    styles[type] ?? {
+      fill: "#f1f5f9",
+      stroke: "#94a3b8",
+      textColor: "#334155",
+    }
+  )
 }
 
 // ─── Component badge color ─────────────────────────────────────────────────────
 
-function componentBadgeVariant(type: string) {
+function componentBadgeClass(type: string) {
   const map: Record<string, string> = {
     networking: "bg-blue-100 text-blue-800",
     compute: "bg-green-100 text-green-800",
@@ -119,9 +102,275 @@ function CollapsibleSection({
         type="button"
       >
         {title}
-        {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        {open ? (
+          <ChevronUp className="h-4 w-4" />
+        ) : (
+          <ChevronDown className="h-4 w-4" />
+        )}
       </button>
       {open && <div className="p-3">{children}</div>}
+    </div>
+  )
+}
+
+// ─── SVG Diagram Canvas ────────────────────────────────────────────────────────
+
+const NODE_WIDTH = 140
+const NODE_HEIGHT = 60
+
+function DiagramCanvas({
+  nodes,
+  edges,
+}: {
+  nodes: DiagramNodePublic[]
+  edges: DiagramEdgePublic[]
+}) {
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [transform, setTransform] = useState({ x: 40, y: 40, scale: 1 })
+  const [dragging, setDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, tx: 0, ty: 0 })
+
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]))
+
+  function handleWheel(e: React.WheelEvent) {
+    e.preventDefault()
+    const factor = e.deltaY > 0 ? 0.9 : 1.1
+    setTransform((t) => ({
+      ...t,
+      scale: Math.min(3, Math.max(0.2, t.scale * factor)),
+    }))
+  }
+
+  function handleMouseDown(e: React.MouseEvent) {
+    if (e.button !== 0) return
+    setDragging(true)
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY,
+      tx: transform.x,
+      ty: transform.y,
+    })
+  }
+
+  function handleMouseMove(e: React.MouseEvent) {
+    if (!dragging) return
+    setTransform((t) => ({
+      ...t,
+      x: dragStart.tx + (e.clientX - dragStart.x),
+      y: dragStart.ty + (e.clientY - dragStart.y),
+    }))
+  }
+
+  function handleMouseUp() {
+    setDragging(false)
+  }
+
+  function fitView() {
+    if (nodes.length === 0) return
+    const xs = nodes.map((n) => n.x_position ?? 0)
+    const ys = nodes.map((n) => n.y_position ?? 0)
+    const minX = Math.min(...xs)
+    const minY = Math.min(...ys)
+    const maxX = Math.max(...xs) + NODE_WIDTH
+    const maxY = Math.max(...ys) + NODE_HEIGHT
+    const containerWidth = svgRef.current?.clientWidth ?? 800
+    const containerHeight = svgRef.current?.clientHeight ?? 500
+    const scaleX = (containerWidth - 80) / (maxX - minX)
+    const scaleY = (containerHeight - 80) / (maxY - minY)
+    const scale = Math.min(scaleX, scaleY, 2)
+    setTransform({
+      x: (containerWidth - (maxX - minX) * scale) / 2 - minX * scale,
+      y: (containerHeight - (maxY - minY) * scale) / 2 - minY * scale,
+      scale,
+    })
+  }
+
+  // Compute edge path between two nodes
+  function edgePath(src: DiagramNodePublic, tgt: DiagramNodePublic): string {
+    const x1 = (src.x_position ?? 0) + NODE_WIDTH / 2
+    const y1 = (src.y_position ?? 0) + NODE_HEIGHT / 2
+    const x2 = (tgt.x_position ?? 0) + NODE_WIDTH / 2
+    const y2 = (tgt.y_position ?? 0) + NODE_HEIGHT / 2
+    const cx = (x1 + x2) / 2
+    return `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`
+  }
+
+  return (
+    <div className="relative w-full h-full bg-dot-pattern overflow-hidden">
+      {/* Toolbar */}
+      <div className="absolute top-3 right-3 z-10 flex gap-1">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() =>
+            setTransform((t) => ({ ...t, scale: Math.min(3, t.scale * 1.2) }))
+          }
+        >
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() =>
+            setTransform((t) => ({ ...t, scale: Math.max(0.2, t.scale * 0.8) }))
+          }
+        >
+          <ZoomOut className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={fitView}
+        >
+          <Maximize2 className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* SVG */}
+      <svg
+        ref={svgRef}
+        className="w-full h-full"
+        role="img"
+        aria-label="Architecture diagram canvas"
+        style={{ cursor: dragging ? "grabbing" : "grab" }}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        <defs>
+          <pattern
+            id="dot-bg"
+            x="0"
+            y="0"
+            width="20"
+            height="20"
+            patternUnits="userSpaceOnUse"
+          >
+            <circle cx="2" cy="2" r="1" fill="#e2e8f0" />
+          </pattern>
+          <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="7"
+            refX="10"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+          </marker>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#dot-bg)" />
+
+        <g
+          transform={`translate(${transform.x}, ${transform.y}) scale(${transform.scale})`}
+        >
+          {/* Edges */}
+          {edges.map((edge) => {
+            const src = nodeMap.get(edge.source_node_id)
+            const tgt = nodeMap.get(edge.target_node_id)
+            if (!src || !tgt) return null
+            return (
+              <g key={edge.id}>
+                <path
+                  d={edgePath(src, tgt)}
+                  fill="none"
+                  stroke="#94a3b8"
+                  strokeWidth="1.5"
+                  markerEnd="url(#arrowhead)"
+                />
+                {edge.label && (
+                  <text
+                    x={
+                      ((src.x_position ?? 0) + (tgt.x_position ?? 0)) / 2 +
+                      NODE_WIDTH / 2
+                    }
+                    y={
+                      ((src.y_position ?? 0) + (tgt.y_position ?? 0)) / 2 +
+                      NODE_HEIGHT / 2
+                    }
+                    fontSize="10"
+                    fill="#64748b"
+                    textAnchor="middle"
+                  >
+                    {edge.label}
+                  </text>
+                )}
+              </g>
+            )
+          })}
+
+          {/* Nodes */}
+          {nodes.map((node) => {
+            const style = nodeStyleByType(node.node_type ?? "generic")
+            const x = node.x_position ?? 0
+            const y = node.y_position ?? 0
+            const typeLabel = node.node_type
+              ? node.node_type.charAt(0).toUpperCase() + node.node_type.slice(1)
+              : "Generic"
+            return (
+              <g key={node.id}>
+                <rect
+                  x={x}
+                  y={y}
+                  width={NODE_WIDTH}
+                  height={NODE_HEIGHT}
+                  rx="6"
+                  ry="6"
+                  fill={style.fill}
+                  stroke={style.stroke}
+                  strokeWidth="1.5"
+                />
+                <text
+                  x={x + NODE_WIDTH / 2}
+                  y={y + NODE_HEIGHT / 2 - 6}
+                  fontSize="12"
+                  fontWeight="600"
+                  fill={style.textColor}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {node.label}
+                </text>
+                <text
+                  x={x + NODE_WIDTH / 2}
+                  y={y + NODE_HEIGHT / 2 + 10}
+                  fontSize="9"
+                  fill="#64748b"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {typeLabel}
+                  {node.provider && node.provider !== "generic"
+                    ? ` · ${node.provider.toUpperCase()}`
+                    : ""}
+                </text>
+              </g>
+            )
+          })}
+        </g>
+      </svg>
+
+      {/* Status bar */}
+      <div className="absolute bottom-2 left-3 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+        {nodes.length} nodes · {edges.length} edges ·{" "}
+        {Math.round(transform.scale * 100)}%
+      </div>
+
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="text-center text-muted-foreground">
+            <Wand2 className="h-12 w-12 mx-auto mb-3 opacity-20" />
+            <p className="text-sm">
+              Enter a prompt and click Generate to create a diagram
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -153,7 +402,10 @@ function LeftPanel({
 
   const updateTitleMutation = useMutation({
     mutationFn: (title: string) =>
-      ProjectsService.updateProject({ projectId, requestBody: { title } }),
+      ProjectsService.updateProject({
+        projectId,
+        requestBody: { title },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] })
       toast.success("Title updated")
@@ -175,7 +427,12 @@ function LeftPanel({
   if (collapsed) {
     return (
       <div className="flex flex-col items-center py-4 w-10 border-r bg-background">
-        <Button variant="ghost" size="icon" onClick={() => setCollapsed(false)} title="Expand">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setCollapsed(false)}
+          title="Expand"
+        >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -186,7 +443,13 @@ function LeftPanel({
     <div className="flex flex-col w-72 border-r bg-background shrink-0">
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <span className="text-sm font-semibold truncate">Project</span>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCollapsed(true)} title="Collapse">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setCollapsed(true)}
+          title="Collapse"
+        >
           <ChevronLeft className="h-4 w-4" />
         </Button>
       </div>
@@ -195,24 +458,35 @@ function LeftPanel({
         <div className="p-4 space-y-4">
           {/* Title */}
           <div>
-            <label className="text-xs text-muted-foreground uppercase tracking-wide">Title</label>
+            <label
+              htmlFor="project-title-input"
+              className="text-xs text-muted-foreground uppercase tracking-wide"
+            >
+              Title
+            </label>
             {editingTitle ? (
               <input
-                className="mt-1 w-full text-sm font-semibold border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
+                id="project-title-input"
+                className="w-full mt-1 text-sm font-medium border rounded px-2 py-1 bg-background"
                 value={titleValue}
                 onChange={(e) => setTitleValue(e.target.value)}
                 onBlur={handleTitleBlur}
-                onKeyDown={(e) => e.key === "Enter" && handleTitleBlur()}
-                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleTitleBlur()
+                  if (e.key === "Escape") {
+                    setEditingTitle(false)
+                    setTitleValue(projectTitle)
+                  }
+                }}
               />
             ) : (
-              <p
-                className="mt-1 text-sm font-semibold cursor-pointer hover:text-primary truncate"
+              <button
+                type="button"
+                className="w-full text-left mt-1 text-sm font-medium hover:text-primary transition-colors truncate"
                 onClick={() => setEditingTitle(true)}
-                title="Click to edit"
               >
-                {titleValue || "Untitled"}
-              </p>
+                {titleValue || "Untitled Project"}
+              </button>
             )}
           </div>
 
@@ -220,28 +494,35 @@ function LeftPanel({
 
           {/* Prompt */}
           <div className="space-y-2">
-            <label className="text-xs text-muted-foreground uppercase tracking-wide">Prompt</label>
+            <label
+              htmlFor="arch-prompt"
+              className="text-xs text-muted-foreground uppercase tracking-wide"
+            >
+              Architecture Prompt
+            </label>
             <Textarea
-              placeholder="Describe your architecture…"
-              className="min-h-[120px] text-sm resize-none"
+              id="arch-prompt"
+              placeholder="Describe your architecture... e.g. Azure hub and spoke with firewall, app gateway, AKS, and SQL"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
+              className="text-sm resize-none"
+              rows={5}
             />
             <div className="flex gap-2">
               <Button
                 className="flex-1"
                 size="sm"
-                onClick={() => prompt.trim() && onGenerate(prompt)}
+                onClick={() => onGenerate(prompt)}
                 disabled={isPending || !prompt.trim()}
               >
-                <Wand2 className="mr-1 h-3.5 w-3.5" />
-                Generate
+                <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+                {isPending ? "Generating..." : "Generate"}
               </Button>
               <Button
-                className="flex-1"
+                variant="outline"
                 size="sm"
-                variant="secondary"
-                onClick={() => prompt.trim() && onRefine(prompt)}
+                className="flex-1"
+                onClick={() => onRefine(prompt)}
                 disabled={isPending || !prompt.trim()}
               >
                 Refine
@@ -249,110 +530,45 @@ function LeftPanel({
             </div>
           </div>
 
+          <Separator />
+
           {/* Prompt history */}
-          {promptHistory.length > 0 && (
-            <CollapsibleSection title="Prompt History">
-              <div className="space-y-2">
+          <CollapsibleSection title="Prompt History">
+            {promptHistory.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No prompts yet.</p>
+            ) : (
+              <ul className="space-y-1">
                 {promptHistory.map((p, i) => (
-                  <button
+                  <li
                     key={i}
-                    className="w-full text-left text-xs text-muted-foreground hover:text-foreground p-2 rounded border hover:bg-muted transition-colors"
-                    onClick={() => setPrompt(p)}
-                    type="button"
+                    className="text-xs text-muted-foreground truncate"
                   >
-                    <span className="line-clamp-2">{p}</span>
-                  </button>
+                    {i + 1}. {p}
+                  </li>
                 ))}
-              </div>
-            </CollapsibleSection>
-          )}
+              </ul>
+            )}
+          </CollapsibleSection>
 
           {/* Version history */}
-          {versions.length > 0 && (
-            <CollapsibleSection title="Version History">
-              <div className="space-y-1">
+          <CollapsibleSection title="Versions">
+            {versions.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No versions yet.</p>
+            ) : (
+              <ul className="space-y-1">
                 {versions.map((v) => (
-                  <div key={v.id} className="flex items-center justify-between text-xs p-2 rounded border">
-                    <span className="font-medium">v{v.version_number}</span>
-                    <span className="text-muted-foreground">
-                      {v.created_at ? new Date(v.created_at).toLocaleDateString() : "—"}
-                    </span>
-                  </div>
+                  <li key={v.id} className="text-xs text-muted-foreground">
+                    v{v.version_number} ·{" "}
+                    {v.created_at
+                      ? new Date(v.created_at).toLocaleString()
+                      : "Unknown"}
+                  </li>
                 ))}
-              </div>
-            </CollapsibleSection>
-          )}
+              </ul>
+            )}
+          </CollapsibleSection>
         </div>
       </ScrollArea>
-    </div>
-  )
-}
-
-// ─── Center Panel ──────────────────────────────────────────────────────────────
-
-function CenterPanel({
-  nodes,
-  edges,
-  onNodesChange,
-  onEdgesChange,
-  flowRef,
-}: {
-  nodes: Node[]
-  edges: Edge[]
-  onNodesChange: ReturnType<typeof useNodesState>[2]
-  onEdgesChange: ReturnType<typeof useEdgesState>[2]
-  flowRef: React.MutableRefObject<{ fitView: () => void } | null>
-}) {
-  const rfRef = useRef<{ fitView: () => void } | null>(null)
-
-  const onInit = useCallback(
-    (instance: { fitView: () => void }) => {
-      rfRef.current = instance
-      flowRef.current = instance
-    },
-    [flowRef],
-  )
-
-  return (
-    <div className="flex-1 flex flex-col min-w-0">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b bg-background shrink-0">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => rfRef.current?.fitView()}
-          title="Fit view"
-        >
-          <Maximize2 className="h-3.5 w-3.5 mr-1" />
-          Fit View
-        </Button>
-        <span className="text-xs text-muted-foreground ml-auto">
-          {nodes.length} nodes · {edges.length} edges
-        </span>
-      </div>
-
-      {/* Canvas */}
-      <div className="flex-1 relative">
-        {nodes.length === 0 && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground pointer-events-none z-10">
-            <Cpu className="h-12 w-12 mb-3 opacity-20" />
-            <p className="text-sm">Enter a prompt and click Generate to create your architecture diagram</p>
-          </div>
-        )}
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onInit={onInit}
-          fitView
-          attributionPosition="bottom-left"
-        >
-          <Background />
-          <Controls />
-          <MiniMap zoomable pannable />
-        </ReactFlow>
-      </div>
     </div>
   )
 }
@@ -370,25 +586,38 @@ function RightPanel({
 }) {
   const [collapsed, setCollapsed] = useState(false)
 
-  async function exportMarkdown() {
+  async function handleExportMarkdown() {
     try {
-      const res = await ProjectsService.exportMarkdown({ projectId })
-      const blob = new Blob([JSON.stringify(res)], { type: "text/markdown" })
+      await ProjectsService.exportMarkdown({ projectId })
+      // Download the notes as a file
+      const blob = new Blob([notes], { type: "text/markdown" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = "architecture.md"
+      a.download = "architecture-notes.md"
       a.click()
       URL.revokeObjectURL(url)
     } catch {
-      toast.error("Export failed")
+      // Fallback: just download current notes
+      const blob = new Blob([notes], { type: "text/markdown" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "architecture-notes.md"
+      a.click()
+      URL.revokeObjectURL(url)
     }
   }
 
   if (collapsed) {
     return (
       <div className="flex flex-col items-center py-4 w-10 border-l bg-background">
-        <Button variant="ghost" size="icon" onClick={() => setCollapsed(false)} title="Expand">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setCollapsed(false)}
+          title="Expand"
+        >
           <ChevronLeft className="h-4 w-4" />
         </Button>
       </div>
@@ -396,62 +625,83 @@ function RightPanel({
   }
 
   return (
-    <div className="flex flex-col w-72 border-l bg-background shrink-0">
+    <div className="flex flex-col w-80 border-l bg-background shrink-0">
       <div className="flex items-center justify-between px-4 py-3 border-b">
-        <span className="text-sm font-semibold">Details</span>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCollapsed(true)} title="Collapse">
+        <span className="text-sm font-semibold">Output</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setCollapsed(true)}
+          title="Collapse"
+        >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
-      <Tabs defaultValue="components" className="flex flex-col flex-1 min-h-0">
-        <TabsList className="mx-4 mt-3 shrink-0">
-          <TabsTrigger value="components" className="flex-1">Components</TabsTrigger>
-          <TabsTrigger value="notes" className="flex-1">Notes</TabsTrigger>
+      <Tabs defaultValue="components" className="flex-1 flex flex-col min-h-0">
+        <TabsList className="mx-4 mt-2 shrink-0">
+          <TabsTrigger value="components" className="flex-1 text-xs">
+            Components ({components.length})
+          </TabsTrigger>
+          <TabsTrigger value="notes" className="flex-1 text-xs">
+            Notes
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="components" className="flex-1 min-h-0 mt-0">
+        <TabsContent value="components" className="flex-1 overflow-hidden mt-0">
           <ScrollArea className="h-full">
-            <div className="p-4 space-y-2">
-              {components.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-8">
-                  No components yet. Generate a diagram to see components.
+            <div className="p-4 space-y-3">
+              {components.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Generate an architecture to see components.
                 </p>
-              )}
-              {components.map((c) => (
-                <div key={c.id} className="border rounded-md p-3 space-y-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-sm font-medium truncate">{c.name}</span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${componentBadgeVariant(c.component_type)}`}
-                    >
-                      {c.component_type}
-                    </span>
+              ) : (
+                components.map((c) => (
+                  <div key={c.id} className="border rounded-md p-3 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium truncate">
+                        {c.name}
+                      </span>
+                      <span
+                        className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${componentBadgeClass(c.component_type ?? "")}`}
+                      >
+                        {c.component_type}
+                      </span>
+                    </div>
+                    {c.provider && c.provider !== "generic" && (
+                      <Badge variant="outline" className="text-xs">
+                        {c.provider.toUpperCase()}
+                      </Badge>
+                    )}
+                    {c.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {c.description}
+                      </p>
+                    )}
+                    {c.role_summary && (
+                      <p className="text-xs text-muted-foreground italic line-clamp-2">
+                        Role: {c.role_summary}
+                      </p>
+                    )}
                   </div>
-                  {c.provider && (
-                    <p className="text-xs text-muted-foreground">{c.provider}</p>
-                  )}
-                  {c.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">{c.description}</p>
-                  )}
-                  {c.role_summary && (
-                    <p className="text-xs italic text-muted-foreground line-clamp-2">{c.role_summary}</p>
-                  )}
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="notes" className="flex-1 min-h-0 mt-0">
+        <TabsContent value="notes" className="flex-1 overflow-hidden mt-0">
           <ScrollArea className="h-full">
             <div className="p-4">
-              {notes ? (
-                <pre className="text-xs whitespace-pre-wrap font-sans leading-relaxed">{notes}</pre>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-8">
-                  No notes yet. Generate a diagram to see architecture notes.
+              {!notes ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Generate an architecture to see notes.
                 </p>
+              ) : (
+                <pre className="text-xs whitespace-pre-wrap font-mono leading-relaxed text-foreground">
+                  {notes}
+                </pre>
               )}
             </div>
           </ScrollArea>
@@ -459,30 +709,29 @@ function RightPanel({
       </Tabs>
 
       {/* Export buttons */}
-      <div className="p-4 border-t space-y-2 shrink-0">
-        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Export</p>
-        <div className="flex flex-col gap-1.5">
-          <Button variant="outline" size="sm" className="justify-start" onClick={exportMarkdown}>
-            <FileText className="mr-2 h-3.5 w-3.5" />
-            Export Markdown
+      <div className="p-4 border-t space-y-2">
+        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+          Export
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs"
+            onClick={handleExportMarkdown}
+            disabled={!notes}
+          >
+            <FileText className="h-3 w-3 mr-1" />
+            Markdown
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="justify-start"
-            onClick={() => toast.info("PNG export requires backend support")}
+            className="flex-1 text-xs"
+            onClick={() => toast.info("SVG export coming soon")}
           >
-            <Download className="mr-2 h-3.5 w-3.5" />
-            Export PNG
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="justify-start"
-            onClick={() => toast.info("SVG export requires backend support")}
-          >
-            <Download className="mr-2 h-3.5 w-3.5" />
-            Export SVG
+            <Download className="h-3 w-3 mr-1" />
+            SVG
           </Button>
         </div>
       </div>
@@ -494,33 +743,50 @@ function RightPanel({
 
 function ArchitectureWorkspace() {
   const { id } = Route.useParams()
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
+  const queryClient = useQueryClient()
+
+  const [nodes, setNodes] = useState<DiagramNodePublic[]>([])
+  const [edges, setEdges] = useState<DiagramEdgePublic[]>([])
   const [components, setComponents] = useState<ComponentItemPublic[]>([])
   const [notes, setNotes] = useState("")
   const [promptHistory, setPromptHistory] = useState<string[]>([])
-  const flowRef = useRef<{ fitView: () => void } | null>(null)
 
-  const { data: projectData } = useQuery({
+  // Fetch project
+  const { data: project, isLoading } = useQuery({
     queryKey: ["project", id],
     queryFn: () => ProjectsService.readProject({ projectId: id }),
   })
 
+  // Fetch versions
   const { data: versionsData } = useQuery({
     queryKey: ["project-versions", id],
     queryFn: () => ProjectsService.listVersions({ projectId: id }),
   })
 
+  const versions: DiagramVersionPublic[] = versionsData?.data ?? []
+
+  const updateResult = useCallback(
+    (result: {
+      nodes: DiagramNodePublic[]
+      edges: DiagramEdgePublic[]
+      components: ComponentItemPublic[]
+      diagram_version: DiagramVersionPublic
+    }) => {
+      setNodes(result.nodes)
+      setEdges(result.edges)
+      setComponents(result.components)
+      setNotes(result.diagram_version.notes_markdown ?? "")
+      queryClient.invalidateQueries({ queryKey: ["project-versions", id] })
+    },
+    [id, queryClient],
+  )
+
   const generateMutation = useMutation({
     mutationFn: (req: GenerationRequest) =>
       ProjectsService.generateDiagram({ projectId: id, requestBody: req }),
     onSuccess: (data) => {
-      setNodes(data.nodes.map(toReactFlowNode))
-      setEdges(data.edges.map(toReactFlowEdge))
-      setComponents(data.components)
-      setNotes(data.notes_markdown ?? data.diagram_version.notes_markdown ?? "")
-      toast.success("Diagram generated")
-      setTimeout(() => flowRef.current?.fitView(), 100)
+      updateResult(data)
+      toast.success("Architecture generated!")
     },
     onError: () => toast.error("Generation failed"),
   })
@@ -529,61 +795,83 @@ function ArchitectureWorkspace() {
     mutationFn: (req: GenerationRequest) =>
       ProjectsService.refineDiagram({ projectId: id, requestBody: req }),
     onSuccess: (data) => {
-      setNodes(data.nodes.map(toReactFlowNode))
-      setEdges(data.edges.map(toReactFlowEdge))
-      setComponents(data.components)
-      setNotes(data.notes_markdown ?? data.diagram_version.notes_markdown ?? "")
-      toast.success("Diagram refined")
-      setTimeout(() => flowRef.current?.fitView(), 100)
+      updateResult(data)
+      toast.success("Architecture refined!")
     },
     onError: () => toast.error("Refinement failed"),
   })
 
+  const isPending = generateMutation.isPending || refineMutation.isPending
+
   function handleGenerate(prompt: string) {
-    setPromptHistory((h) => [prompt, ...h.filter((p) => p !== prompt)].slice(0, 10))
+    if (!prompt.trim()) return
+    setPromptHistory((h) => [prompt, ...h.slice(0, 9)])
     generateMutation.mutate({
       prompt,
-      cloud_context: projectData?.cloud_context ?? null,
-      diagram_type: projectData?.diagram_type ?? null,
+      cloud_context: project?.cloud_context ?? undefined,
+      diagram_type: project?.diagram_type ?? undefined,
     })
   }
 
   function handleRefine(prompt: string) {
-    setPromptHistory((h) => [prompt, ...h.filter((p) => p !== prompt)].slice(0, 10))
+    if (!prompt.trim()) return
+    setPromptHistory((h) => [prompt, ...h.slice(0, 9)])
     refineMutation.mutate({
       prompt,
-      cloud_context: projectData?.cloud_context ?? null,
-      diagram_type: projectData?.diagram_type ?? null,
+      cloud_context: project?.cloud_context ?? undefined,
+      diagram_type: project?.diagram_type ?? undefined,
     })
   }
 
-  const isPending = generateMutation.isPending || refineMutation.isPending
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-muted-foreground text-sm">Loading project...</div>
+      </div>
+    )
+  }
+
+  if (!project) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-muted-foreground text-sm">Project not found.</div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex h-full overflow-hidden -m-6">
+    <div className="flex h-full overflow-hidden">
       <LeftPanel
-        projectTitle={projectData?.title ?? ""}
+        projectTitle={project.title ?? ""}
         projectId={id}
         onGenerate={handleGenerate}
         onRefine={handleRefine}
         isPending={isPending}
-        versions={versionsData?.data ?? []}
+        versions={versions}
         promptHistory={promptHistory}
       />
 
-      <CenterPanel
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        flowRef={flowRef}
-      />
+      {/* Center: Diagram Canvas */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="px-4 py-2 border-b flex items-center gap-2">
+          <span className="text-sm font-medium truncate">{project.title}</span>
+          {project.cloud_context && (
+            <Badge variant="outline" className="text-xs">
+              {project.cloud_context}
+            </Badge>
+          )}
+          {project.diagram_type && (
+            <Badge variant="secondary" className="text-xs">
+              {project.diagram_type}
+            </Badge>
+          )}
+        </div>
+        <div className="flex-1 relative">
+          <DiagramCanvas nodes={nodes} edges={edges} />
+        </div>
+      </div>
 
-      <RightPanel
-        components={components}
-        notes={notes}
-        projectId={id}
-      />
+      <RightPanel components={components} notes={notes} projectId={id} />
     </div>
   )
 }

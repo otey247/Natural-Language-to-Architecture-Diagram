@@ -18,7 +18,6 @@ class UserBase(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
 
 
-
 # Properties to receive via API on creation
 class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=128)
@@ -55,7 +54,9 @@ class User(UserBase, table=True):
         sa_type=DateTime(timezone=True),  # type: ignore
     )
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
-    projects: list["Project"] = Relationship(back_populates="owner", cascade_delete=True)
+    projects: list["Project"] = Relationship(
+        back_populates="owner", cascade_delete=True
+    )
 
 
 # Properties to return via API, id is always required
@@ -135,6 +136,7 @@ class NewPassword(SQLModel):
 # Project models
 # ---------------------------------------------------------------------------
 
+
 class ProjectBase(SQLModel):
     title: str = Field(min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=1024)
@@ -157,12 +159,16 @@ class ProjectUpdate(SQLModel):
 
 class Project(ProjectBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    owner_id: uuid.UUID = Field(foreign_key="user.id", nullable=False, ondelete="CASCADE")
+    owner_id: uuid.UUID = Field(
+        foreign_key="user.id", nullable=False, ondelete="CASCADE"
+    )
     created_at: datetime | None = Field(
-        default_factory=get_datetime_utc, sa_type=DateTime(timezone=True)  # type: ignore
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
     )
     updated_at: datetime | None = Field(
-        default_factory=get_datetime_utc, sa_type=DateTime(timezone=True)  # type: ignore
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
     )
     owner: User | None = Relationship(back_populates="projects")
     prompt_revisions: list["PromptRevision"] = Relationship(
@@ -189,15 +195,19 @@ class ProjectsPublic(SQLModel):
 # PromptRevision models
 # ---------------------------------------------------------------------------
 
+
 class PromptRevisionBase(SQLModel):
     prompt_text: str = Field(min_length=1, max_length=4096)
 
 
 class PromptRevision(PromptRevisionBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    project_id: uuid.UUID = Field(foreign_key="project.id", nullable=False, ondelete="CASCADE")
+    project_id: uuid.UUID = Field(
+        foreign_key="project.id", nullable=False, ondelete="CASCADE"
+    )
     created_at: datetime | None = Field(
-        default_factory=get_datetime_utc, sa_type=DateTime(timezone=True)  # type: ignore
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
     )
     created_by: uuid.UUID | None = None
     project: Project | None = Relationship(back_populates="prompt_revisions")
@@ -213,6 +223,7 @@ class PromptRevisionPublic(PromptRevisionBase):
 # DiagramVersion models
 # ---------------------------------------------------------------------------
 
+
 class DiagramVersionBase(SQLModel):
     version_number: int = Field(default=1)
     diagram_json: str | None = Field(default=None)
@@ -222,9 +233,12 @@ class DiagramVersionBase(SQLModel):
 
 class DiagramVersion(DiagramVersionBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    project_id: uuid.UUID = Field(foreign_key="project.id", nullable=False, ondelete="CASCADE")
+    project_id: uuid.UUID = Field(
+        foreign_key="project.id", nullable=False, ondelete="CASCADE"
+    )
     created_at: datetime | None = Field(
-        default_factory=get_datetime_utc, sa_type=DateTime(timezone=True)  # type: ignore
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
     )
     created_by: uuid.UUID | None = None
     project: Project | None = Relationship(back_populates="diagram_versions")
@@ -253,6 +267,7 @@ class DiagramVersionsPublic(SQLModel):
 # ---------------------------------------------------------------------------
 # DiagramNode models
 # ---------------------------------------------------------------------------
+
 
 class DiagramNodeBase(SQLModel):
     label: str = Field(min_length=1, max_length=255)
@@ -293,6 +308,7 @@ class DiagramNodePublic(DiagramNodeBase):
 # DiagramEdge models
 # ---------------------------------------------------------------------------
 
+
 class DiagramEdgeBase(SQLModel):
     source_node_id: uuid.UUID
     target_node_id: uuid.UUID
@@ -326,6 +342,7 @@ class DiagramEdgePublic(DiagramEdgeBase):
 # ComponentItem models
 # ---------------------------------------------------------------------------
 
+
 class ComponentItemBase(SQLModel):
     name: str = Field(min_length=1, max_length=255)
     component_type: str = Field(max_length=255)
@@ -355,6 +372,7 @@ class ComponentItemPublic(ComponentItemBase):
 # Generation request / result
 # ---------------------------------------------------------------------------
 
+
 class GenerationRequest(SQLModel):
     prompt: str = Field(min_length=1, max_length=4096)
     cloud_context: str | None = None
@@ -372,6 +390,7 @@ class GenerationResult(SQLModel):
 # ---------------------------------------------------------------------------
 # Diagram JSON update
 # ---------------------------------------------------------------------------
+
 
 class DiagramJsonUpdate(SQLModel):
     diagram_json: str | None = None

@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { Calendar, FolderOpen, LayoutGrid, MoreHorizontal, Plus, Trash2 } from "lucide-react"
+import {
+  Calendar,
+  FolderOpen,
+  LayoutGrid,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+} from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -8,12 +15,39 @@ import { ProjectsService } from "@/client"
 import type { ProjectCreate, ProjectPublic } from "@/client/types.gen"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export const Route = createFileRoute("/_layout/")({
   component: ProjectsDashboard,
@@ -22,7 +56,14 @@ export const Route = createFileRoute("/_layout/")({
   }),
 })
 
-const CLOUD_CONTEXTS = ["Azure", "AWS", "GCP", "Multi-Cloud", "On-Premises", "Hybrid"]
+const CLOUD_CONTEXTS = [
+  "Azure",
+  "AWS",
+  "GCP",
+  "Multi-Cloud",
+  "On-Premises",
+  "Hybrid",
+]
 const DIAGRAM_TYPES = ["Conceptual", "Logical", "Deployment"]
 
 function NewProjectDialog() {
@@ -42,7 +83,12 @@ function NewProjectDialog() {
       queryClient.invalidateQueries({ queryKey: ["projects"] })
       toast.success("Project created")
       setOpen(false)
-      setForm({ title: "", description: "", cloud_context: undefined, diagram_type: undefined })
+      setForm({
+        title: "",
+        description: "",
+        cloud_context: undefined,
+        diagram_type: undefined,
+      })
     },
     onError: () => toast.error("Failed to create project"),
   })
@@ -69,7 +115,9 @@ function NewProjectDialog() {
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>New Architecture Project</DialogTitle>
-          <DialogDescription>Create a new project to start designing your architecture.</DialogDescription>
+          <DialogDescription>
+            Create a new project to start designing your architecture.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -77,7 +125,9 @@ function NewProjectDialog() {
             <Input
               id="title"
               value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, title: e.target.value }))
+              }
               placeholder="My Architecture Project"
               required
             />
@@ -87,7 +137,9 @@ function NewProjectDialog() {
             <Input
               id="description"
               value={form.description ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, description: e.target.value }))
+              }
               placeholder="Brief description of the project"
             />
           </div>
@@ -95,14 +147,18 @@ function NewProjectDialog() {
             <Label htmlFor="cloud_context">Cloud Context</Label>
             <Select
               value={form.cloud_context ?? ""}
-              onValueChange={(v) => setForm((f) => ({ ...f, cloud_context: v || null }))}
+              onValueChange={(v) =>
+                setForm((f) => ({ ...f, cloud_context: v || null }))
+              }
             >
               <SelectTrigger id="cloud_context">
                 <SelectValue placeholder="Select cloud context" />
               </SelectTrigger>
               <SelectContent>
                 {CLOUD_CONTEXTS.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -111,23 +167,34 @@ function NewProjectDialog() {
             <Label htmlFor="diagram_type">Diagram Type</Label>
             <Select
               value={form.diagram_type ?? ""}
-              onValueChange={(v) => setForm((f) => ({ ...f, diagram_type: v || null }))}
+              onValueChange={(v) =>
+                setForm((f) => ({ ...f, diagram_type: v || null }))
+              }
             >
               <SelectTrigger id="diagram_type">
                 <SelectValue placeholder="Select diagram type" />
               </SelectTrigger>
               <SelectContent>
                 {DIAGRAM_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={createMutation.isPending || !form.title.trim()}>
+            <Button
+              type="submit"
+              disabled={createMutation.isPending || !form.title.trim()}
+            >
               {createMutation.isPending ? "Creating…" : "Create Project"}
             </Button>
           </DialogFooter>
@@ -151,7 +218,8 @@ function ProjectCard({ project }: { project: ProjectPublic }) {
   })
 
   const duplicateMutation = useMutation({
-    mutationFn: () => ProjectsService.duplicateProject({ projectId: project.id }),
+    mutationFn: () =>
+      ProjectsService.duplicateProject({ projectId: project.id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] })
       toast.success("Project duplicated")
@@ -169,7 +237,9 @@ function ProjectCard({ project }: { project: ProjectPublic }) {
     <Card className="flex flex-col hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base line-clamp-2 leading-snug">{project.title}</CardTitle>
+          <CardTitle className="text-base line-clamp-2 leading-snug">
+            {project.title}
+          </CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
@@ -178,11 +248,18 @@ function ProjectCard({ project }: { project: ProjectPublic }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate({ to: "/projects/$id", params: { id: project.id } })}>
+              <DropdownMenuItem
+                onClick={() =>
+                  navigate({ to: "/projects/$id", params: { id: project.id } })
+                }
+              >
                 <FolderOpen className="mr-2 h-4 w-4" />
                 Open
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => duplicateMutation.mutate()} disabled={duplicateMutation.isPending}>
+              <DropdownMenuItem
+                onClick={() => duplicateMutation.mutate()}
+                disabled={duplicateMutation.isPending}
+              >
                 <LayoutGrid className="mr-2 h-4 w-4" />
                 Duplicate
               </DropdownMenuItem>
@@ -199,16 +276,22 @@ function ProjectCard({ project }: { project: ProjectPublic }) {
           </DropdownMenu>
         </div>
         {project.description && (
-          <CardDescription className="line-clamp-2 text-sm">{project.description}</CardDescription>
+          <CardDescription className="line-clamp-2 text-sm">
+            {project.description}
+          </CardDescription>
         )}
       </CardHeader>
       <CardContent className="pb-2 flex-1">
         <div className="flex flex-wrap gap-1">
           {project.cloud_context && (
-            <Badge variant="secondary" className="text-xs">{project.cloud_context}</Badge>
+            <Badge variant="secondary" className="text-xs">
+              {project.cloud_context}
+            </Badge>
           )}
           {project.diagram_type && (
-            <Badge variant="outline" className="text-xs">{project.diagram_type}</Badge>
+            <Badge variant="outline" className="text-xs">
+              {project.diagram_type}
+            </Badge>
           )}
         </div>
       </CardContent>
@@ -220,7 +303,9 @@ function ProjectCard({ project }: { project: ProjectPublic }) {
         <Button
           size="sm"
           variant="default"
-          onClick={() => navigate({ to: "/projects/$id", params: { id: project.id } })}
+          onClick={() =>
+            navigate({ to: "/projects/$id", params: { id: project.id } })
+          }
         >
           Open
         </Button>
@@ -241,8 +326,12 @@ function ProjectsDashboard() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Architecture Projects</h1>
-          <p className="text-muted-foreground">Design and manage your cloud architecture diagrams</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Architecture Projects
+          </h1>
+          <p className="text-muted-foreground">
+            Design and manage your cloud architecture diagrams
+          </p>
         </div>
         <NewProjectDialog />
       </div>
@@ -262,7 +351,9 @@ function ProjectsDashboard() {
           </div>
           <div>
             <h3 className="text-lg font-semibold">No projects yet</h3>
-            <p className="text-muted-foreground">Create your first architecture project to get started</p>
+            <p className="text-muted-foreground">
+              Create your first architecture project to get started
+            </p>
           </div>
           <NewProjectDialog />
         </div>

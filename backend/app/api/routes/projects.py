@@ -10,11 +10,10 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from sqlmodel import col, func, select
 
-from app.api.deps import CurrentUser, SessionDep
 from app import crud
+from app.api.deps import CurrentUser, SessionDep
 from app.models import (
     ComponentItem,
-    ComponentItemCreate,
     ComponentItemPublic,
     DiagramEdge,
     DiagramEdgeCreate,
@@ -38,7 +37,11 @@ from app.models import (
     ProjectUpdate,
     PromptRevision,
 )
-from app.services.generation import generate_architecture, refine_architecture
+from app.services.generation import (
+    GeneratedDiagram,
+    generate_architecture,
+    refine_architecture,
+)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -46,6 +49,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _get_project_or_404(session: SessionDep, project_id: uuid.UUID) -> Project:
     project = session.get(Project, project_id)
@@ -59,7 +63,9 @@ def _require_owner(project: Project, current_user: Any) -> None:
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
 
-def _latest_version(session: SessionDep, project_id: uuid.UUID) -> DiagramVersion | None:
+def _latest_version(
+    session: SessionDep, project_id: uuid.UUID
+) -> DiagramVersion | None:
     stmt = (
         select(DiagramVersion)
         .where(DiagramVersion.project_id == project_id)
@@ -69,9 +75,8 @@ def _latest_version(session: SessionDep, project_id: uuid.UUID) -> DiagramVersio
 
 
 def _next_version_number(session: SessionDep, project_id: uuid.UUID) -> int:
-    stmt = (
-        select(func.max(DiagramVersion.version_number))
-        .where(DiagramVersion.project_id == project_id)
+    stmt = select(func.max(DiagramVersion.version_number)).where(
+        DiagramVersion.project_id == project_id
     )
     result = session.exec(stmt).one()
     return (result or 0) + 1
@@ -80,7 +85,7 @@ def _next_version_number(session: SessionDep, project_id: uuid.UUID) -> int:
 def _persist_generation(
     session: SessionDep,
     project: Project,
-    diagram,  # GeneratedDiagram
+    diagram: GeneratedDiagram,
     current_user_id: uuid.UUID,
 ) -> tuple[DiagramVersion, list[DiagramNode], list[DiagramEdge], list[ComponentItem]]:
     """Persist a GeneratedDiagram to the database and return DB objects."""
@@ -146,6 +151,7 @@ def _persist_generation(
 # Project CRUD
 # ---------------------------------------------------------------------------
 
+
 @router.get("/", response_model=ProjectsPublic)
 def list_projects(
     session: SessionDep,
@@ -197,7 +203,9 @@ def update_project(
     """Update a project's metadata."""
     project = _get_project_or_404(session, project_id)
     _require_owner(project, current_user)
-    return crud.update_project(session=session, db_project=project, project_in=project_in)
+    return crud.update_project(
+        session=session, db_project=project, project_in=project_in
+    )
 
 
 @router.delete("/{project_id}", response_model=Message)
@@ -304,6 +312,7 @@ def duplicate_project(
 # ---------------------------------------------------------------------------
 # Generation endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.post("/{project_id}/generate", response_model=GenerationResult)
 def generate_diagram(
@@ -416,10 +425,16 @@ def regenerate_notes(
     if not latest:
         raise HTTPException(status_code=404, detail="No diagram version found")
 
-    from app.services.generation import detect_components, detect_provider, generate_notes
+    from app.services.generation import (
+        detect_components,
+        detect_provider,
+        generate_notes,
+    )
 
     combined = " ".join(
-        filter(None, [project.current_prompt, project.cloud_context, project.diagram_type])
+        filter(
+            None, [project.current_prompt, project.cloud_context, project.diagram_type]
+        )
     )
     provider = detect_provider(combined)
     specs = detect_components(combined)
@@ -434,7 +449,9 @@ def regenerate_notes(
     return Message(message="Notes regenerated successfully")
 
 
-@router.post("/{project_id}/regenerate-components", response_model=list[ComponentItemPublic])
+@router.post(
+    "/{project_id}/regenerate-components", response_model=list[ComponentItemPublic]
+)
 def regenerate_components(
     *,
     session: SessionDep,
@@ -452,7 +469,9 @@ def regenerate_components(
     from app.services.generation import detect_components, detect_provider
 
     combined = " ".join(
-        filter(None, [project.current_prompt, project.cloud_context, project.diagram_type])
+        filter(
+            None, [project.current_prompt, project.cloud_context, project.diagram_type]
+        )
     )
     provider = detect_provider(combined)
     specs = detect_components(combined)
@@ -491,6 +510,7 @@ def regenerate_components(
 # Version management
 # ---------------------------------------------------------------------------
 
+
 @router.get("/{project_id}/versions", response_model=DiagramVersionsPublic)
 def list_versions(
     session: SessionDep,
@@ -522,7 +542,9 @@ def list_versions(
     )
 
 
-@router.post("/{project_id}/versions/{version_id}/restore", response_model=DiagramVersionPublic)
+@router.post(
+    "/{project_id}/versions/{version_id}/restore", response_model=DiagramVersionPublic
+)
 def restore_version(
     *,
     session: SessionDep,
@@ -598,6 +620,7 @@ def restore_version(
 # Diagram JSON update
 # ---------------------------------------------------------------------------
 
+
 @router.patch("/{project_id}/diagram", response_model=DiagramVersionPublic)
 def update_diagram_json(
     *,
@@ -628,7 +651,10 @@ def update_diagram_json(
 # Node CRUD
 # ---------------------------------------------------------------------------
 
-def _get_latest_version_or_404(session: SessionDep, project_id: uuid.UUID) -> DiagramVersion:
+
+def _get_latest_version_or_404(
+    session: SessionDep, project_id: uuid.UUID
+) -> DiagramVersion:
     dv = _latest_version(session, project_id)
     if not dv:
         raise HTTPException(status_code=404, detail="No diagram version found")
@@ -675,7 +701,9 @@ def update_node(
         raise HTTPException(status_code=404, detail="Node not found")
     dv = session.get(DiagramVersion, node.diagram_version_id)
     if not dv or dv.project_id != project_id:
-        raise HTTPException(status_code=403, detail="Node does not belong to this project")
+        raise HTTPException(
+            status_code=403, detail="Node does not belong to this project"
+        )
 
     node.sqlmodel_update(node_in.model_dump(exclude_unset=True))
     project.updated_at = datetime.now(timezone.utc)
@@ -702,7 +730,9 @@ def delete_node(
         raise HTTPException(status_code=404, detail="Node not found")
     dv = session.get(DiagramVersion, node.diagram_version_id)
     if not dv or dv.project_id != project_id:
-        raise HTTPException(status_code=403, detail="Node does not belong to this project")
+        raise HTTPException(
+            status_code=403, detail="Node does not belong to this project"
+        )
 
     session.delete(node)
     project.updated_at = datetime.now(timezone.utc)
@@ -714,6 +744,7 @@ def delete_node(
 # ---------------------------------------------------------------------------
 # Edge CRUD
 # ---------------------------------------------------------------------------
+
 
 @router.post("/{project_id}/diagram/edges", response_model=DiagramEdgePublic)
 def add_edge(
@@ -755,7 +786,9 @@ def update_edge(
         raise HTTPException(status_code=404, detail="Edge not found")
     dv = session.get(DiagramVersion, edge.diagram_version_id)
     if not dv or dv.project_id != project_id:
-        raise HTTPException(status_code=403, detail="Edge does not belong to this project")
+        raise HTTPException(
+            status_code=403, detail="Edge does not belong to this project"
+        )
 
     edge.sqlmodel_update(edge_in.model_dump(exclude_unset=True))
     project.updated_at = datetime.now(timezone.utc)
@@ -782,7 +815,9 @@ def delete_edge(
         raise HTTPException(status_code=404, detail="Edge not found")
     dv = session.get(DiagramVersion, edge.diagram_version_id)
     if not dv or dv.project_id != project_id:
-        raise HTTPException(status_code=403, detail="Edge does not belong to this project")
+        raise HTTPException(
+            status_code=403, detail="Edge does not belong to this project"
+        )
 
     session.delete(edge)
     project.updated_at = datetime.now(timezone.utc)
@@ -794,6 +829,7 @@ def delete_edge(
 # ---------------------------------------------------------------------------
 # Export endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.post("/{project_id}/export/markdown")
 def export_markdown(
@@ -846,7 +882,10 @@ def export_bundle(
 
     latest = _latest_version(session, project_id)
     if not latest:
-        return {"project": ProjectPublic.model_validate(project).model_dump(), "diagram_version": None}
+        return {
+            "project": ProjectPublic.model_validate(project).model_dump(),
+            "diagram_version": None,
+        }
 
     nodes = session.exec(
         select(DiagramNode).where(DiagramNode.diagram_version_id == latest.id)
@@ -863,5 +902,7 @@ def export_bundle(
         "diagram_version": DiagramVersionPublic.model_validate(latest).model_dump(),
         "nodes": [DiagramNodePublic.model_validate(n).model_dump() for n in nodes],
         "edges": [DiagramEdgePublic.model_validate(e).model_dump() for e in edges],
-        "components": [ComponentItemPublic.model_validate(c).model_dump() for c in components],
+        "components": [
+            ComponentItemPublic.model_validate(c).model_dump() for c in components
+        ],
     }
