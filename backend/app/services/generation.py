@@ -144,7 +144,7 @@ _COMPONENT_SPECS: list[ComponentSpec] = [
         node_type="kubernetes",
         group="Compute",
         description="Container orchestration cluster",
-        role_summary="Runs containerised workloads at scale",
+        role_summary="Runs containerized workloads at scale",
         keywords=["aks", "eks", "gke", "kubernetes", "k8s", "container"],
     ),
     ComponentSpec(
@@ -239,7 +239,7 @@ _COMPONENT_SPECS: list[ComponentSpec] = [
         label="Monitoring & Logging",
         node_type="monitoring",
         group="Observability",
-        description="Centralised monitoring, logging, and alerting",
+        description="Centralized monitoring, logging, and alerting",
         role_summary="Collects metrics, logs, and traces for observability",
         keywords=[
             "monitoring", "log analytics", "cloudwatch", "stackdriver",
