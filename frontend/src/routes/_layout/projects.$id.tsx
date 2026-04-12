@@ -811,7 +811,6 @@ function ArchitectureWorkspace() {
       setComponents(result.components)
       setNotes(result.diagram_version.notes_markdown ?? "")
       queryClient.invalidateQueries({ queryKey: ["project", id] })
-      queryClient.invalidateQueries({ queryKey: ["project-bundle", id] })
       queryClient.invalidateQueries({ queryKey: ["project-versions", id] })
     },
     [id, queryClient],
