@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProjectsListProjectsData, ProjectsListProjectsResponse, ProjectsCreateProjectData, ProjectsCreateProjectResponse, ProjectsReadProjectData, ProjectsReadProjectResponse, ProjectsUpdateProjectData, ProjectsUpdateProjectResponse, ProjectsDeleteProjectData, ProjectsDeleteProjectResponse, ProjectsDuplicateProjectData, ProjectsDuplicateProjectResponse, ProjectsGenerateDiagramData, ProjectsGenerateDiagramResponse, ProjectsRefineDiagramData, ProjectsRefineDiagramResponse, ProjectsRegenerateNotesData, ProjectsRegenerateNotesResponse, ProjectsRegenerateComponentsData, ProjectsRegenerateComponentsResponse, ProjectsListVersionsData, ProjectsListVersionsResponse, ProjectsRestoreVersionData, ProjectsRestoreVersionResponse, ProjectsUpdateDiagramJsonData, ProjectsUpdateDiagramJsonResponse, ProjectsAddNodeData, ProjectsAddNodeResponse, ProjectsUpdateNodeData, ProjectsUpdateNodeResponse, ProjectsDeleteNodeData, ProjectsDeleteNodeResponse, ProjectsAddEdgeData, ProjectsAddEdgeResponse, ProjectsUpdateEdgeData, ProjectsUpdateEdgeResponse, ProjectsDeleteEdgeData, ProjectsDeleteEdgeResponse, ProjectsExportMarkdownData, ProjectsExportMarkdownResponse, ProjectsExportPngData, ProjectsExportPngResponse, ProjectsExportSvgData, ProjectsExportSvgResponse, ProjectsExportBundleData, ProjectsExportBundleResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class ItemsService {
     /**
@@ -228,6 +228,532 @@ export class PrivateService {
             url: '/api/v1/private/users/',
             body: data.requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class ProjectsService {
+    /**
+     * List Projects
+     * List all projects owned by the current user.
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns ProjectsPublic Successful Response
+     * @throws ApiError
+     */
+    public static listProjects(data: ProjectsListProjectsData = {}): CancelablePromise<ProjectsListProjectsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/projects/',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Project
+     * Create a new project.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ProjectPublic Successful Response
+     * @throws ApiError
+     */
+    public static createProject(data: ProjectsCreateProjectData): CancelablePromise<ProjectsCreateProjectResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Project
+     * Get a single project.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @returns ProjectPublic Successful Response
+     * @throws ApiError
+     */
+    public static readProject(data: ProjectsReadProjectData): CancelablePromise<ProjectsReadProjectResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/projects/{project_id}',
+            path: {
+                project_id: data.projectId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Project
+     * Update a project's metadata.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.requestBody
+     * @returns ProjectPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateProject(data: ProjectsUpdateProjectData): CancelablePromise<ProjectsUpdateProjectResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/projects/{project_id}',
+            path: {
+                project_id: data.projectId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Project
+     * Delete a project and all its data.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteProject(data: ProjectsDeleteProjectData): CancelablePromise<ProjectsDeleteProjectResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/projects/{project_id}',
+            path: {
+                project_id: data.projectId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Duplicate Project
+     * Duplicate a project (metadata + latest diagram version).
+     * @param data The data for the request.
+     * @param data.projectId
+     * @returns ProjectPublic Successful Response
+     * @throws ApiError
+     */
+    public static duplicateProject(data: ProjectsDuplicateProjectData): CancelablePromise<ProjectsDuplicateProjectResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/duplicate',
+            path: {
+                project_id: data.projectId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Generate Diagram
+     * Generate an architecture diagram from a natural language prompt.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.requestBody
+     * @returns GenerationResult Successful Response
+     * @throws ApiError
+     */
+    public static generateDiagram(data: ProjectsGenerateDiagramData): CancelablePromise<ProjectsGenerateDiagramResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/generate',
+            path: {
+                project_id: data.projectId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Refine Diagram
+     * Refine an existing architecture with an additional prompt.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.requestBody
+     * @returns GenerationResult Successful Response
+     * @throws ApiError
+     */
+    public static refineDiagram(data: ProjectsRefineDiagramData): CancelablePromise<ProjectsRefineDiagramResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/refine',
+            path: {
+                project_id: data.projectId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Regenerate Notes
+     * Regenerate the notes for the latest diagram version.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static regenerateNotes(data: ProjectsRegenerateNotesData): CancelablePromise<ProjectsRegenerateNotesResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/regenerate-notes',
+            path: {
+                project_id: data.projectId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Regenerate Components
+     * Regenerate the component inventory for the latest diagram version.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @returns ComponentItemPublic Successful Response
+     * @throws ApiError
+     */
+    public static regenerateComponents(data: ProjectsRegenerateComponentsData): CancelablePromise<ProjectsRegenerateComponentsResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/regenerate-components',
+            path: {
+                project_id: data.projectId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * List Versions
+     * List all diagram versions for a project.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.skip
+     * @param data.limit
+     * @returns DiagramVersionsPublic Successful Response
+     * @throws ApiError
+     */
+    public static listVersions(data: ProjectsListVersionsData): CancelablePromise<ProjectsListVersionsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/projects/{project_id}/versions',
+            path: {
+                project_id: data.projectId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Version
+     * Restore a previous diagram version by creating a new version from it.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.versionId
+     * @returns DiagramVersionPublic Successful Response
+     * @throws ApiError
+     */
+    public static restoreVersion(data: ProjectsRestoreVersionData): CancelablePromise<ProjectsRestoreVersionResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/versions/{version_id}/restore',
+            path: {
+                project_id: data.projectId,
+                version_id: data.versionId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Diagram Json
+     * Update the diagram/layout JSON on the latest version.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.requestBody
+     * @returns DiagramVersionPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateDiagramJson(data: ProjectsUpdateDiagramJsonData): CancelablePromise<ProjectsUpdateDiagramJsonResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/projects/{project_id}/diagram',
+            path: {
+                project_id: data.projectId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Node
+     * Add a node to the latest diagram version.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.requestBody
+     * @returns DiagramNodePublic Successful Response
+     * @throws ApiError
+     */
+    public static addNode(data: ProjectsAddNodeData): CancelablePromise<ProjectsAddNodeResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/diagram/nodes',
+            path: {
+                project_id: data.projectId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Node
+     * Update a diagram node.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.nodeId
+     * @param data.requestBody
+     * @returns DiagramNodePublic Successful Response
+     * @throws ApiError
+     */
+    public static updateNode(data: ProjectsUpdateNodeData): CancelablePromise<ProjectsUpdateNodeResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/projects/{project_id}/diagram/nodes/{node_id}',
+            path: {
+                project_id: data.projectId,
+                node_id: data.nodeId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Node
+     * Delete a diagram node.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.nodeId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteNode(data: ProjectsDeleteNodeData): CancelablePromise<ProjectsDeleteNodeResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/projects/{project_id}/diagram/nodes/{node_id}',
+            path: {
+                project_id: data.projectId,
+                node_id: data.nodeId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Edge
+     * Add an edge to the latest diagram version.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.requestBody
+     * @returns DiagramEdgePublic Successful Response
+     * @throws ApiError
+     */
+    public static addEdge(data: ProjectsAddEdgeData): CancelablePromise<ProjectsAddEdgeResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/diagram/edges',
+            path: {
+                project_id: data.projectId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Edge
+     * Update a diagram edge.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.edgeId
+     * @param data.requestBody
+     * @returns DiagramEdgePublic Successful Response
+     * @throws ApiError
+     */
+    public static updateEdge(data: ProjectsUpdateEdgeData): CancelablePromise<ProjectsUpdateEdgeResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/projects/{project_id}/diagram/edges/{edge_id}',
+            path: {
+                project_id: data.projectId,
+                edge_id: data.edgeId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Edge
+     * Delete a diagram edge.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @param data.edgeId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteEdge(data: ProjectsDeleteEdgeData): CancelablePromise<ProjectsDeleteEdgeResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/projects/{project_id}/diagram/edges/{edge_id}',
+            path: {
+                project_id: data.projectId,
+                edge_id: data.edgeId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Export Markdown
+     * Export architecture notes as Markdown.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static exportMarkdown(data: ProjectsExportMarkdownData): CancelablePromise<ProjectsExportMarkdownResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/export/markdown',
+            path: {
+                project_id: data.projectId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Export Png
+     * Export diagram as PNG (placeholder – returns metadata only).
+     * @param data The data for the request.
+     * @param data.projectId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static exportPng(data: ProjectsExportPngData): CancelablePromise<ProjectsExportPngResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/export/png',
+            path: {
+                project_id: data.projectId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Export Svg
+     * Export diagram as SVG (placeholder – returns metadata only).
+     * @param data The data for the request.
+     * @param data.projectId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static exportSvg(data: ProjectsExportSvgData): CancelablePromise<ProjectsExportSvgResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/export/svg',
+            path: {
+                project_id: data.projectId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Export Bundle
+     * Export a JSON bundle containing project, versions, nodes, edges, and components.
+     * @param data The data for the request.
+     * @param data.projectId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static exportBundle(data: ProjectsExportBundleData): CancelablePromise<ProjectsExportBundleResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/export/bundle',
+            path: {
+                project_id: data.projectId
+            },
             errors: {
                 422: 'Validation Error'
             }
