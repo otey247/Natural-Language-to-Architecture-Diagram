@@ -56,6 +56,11 @@ def upgrade():
         sa.Column('created_by', sa.UUID(), nullable=True),
         sa.ForeignKeyConstraint(['project_id'], ['project.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint(
+            'project_id',
+            'version_number',
+            name='uq_diagramversion_project_id_version_number',
+        ),
     )
 
     op.create_table(
@@ -81,7 +86,21 @@ def upgrade():
         sa.Column('label', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
         sa.Column('metadata_json', sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(['diagram_version_id'], ['diagramversion.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['source_node_id'], ['diagramnode.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['target_node_id'], ['diagramnode.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
+    )
+    op.create_index(
+        op.f('ix_diagramedge_source_node_id'),
+        'diagramedge',
+        ['source_node_id'],
+        unique=False,
+    )
+    op.create_index(
+        op.f('ix_diagramedge_target_node_id'),
+        'diagramedge',
+        ['target_node_id'],
+        unique=False,
     )
 
     op.create_table(
@@ -100,6 +119,8 @@ def upgrade():
 
 def downgrade():
     op.drop_table('componentitem')
+    op.drop_index(op.f('ix_diagramedge_target_node_id'), table_name='diagramedge')
+    op.drop_index(op.f('ix_diagramedge_source_node_id'), table_name='diagramedge')
     op.drop_table('diagramedge')
     op.drop_table('diagramnode')
     op.drop_table('diagramversion')

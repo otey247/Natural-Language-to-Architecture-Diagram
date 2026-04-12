@@ -12,6 +12,11 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react"
+import type {
+  MouseEvent as ReactMouseEvent,
+  ReactNode,
+  WheelEvent as ReactWheelEvent,
+} from "react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -43,6 +48,23 @@ type NodeStyle = {
   fill: string
   stroke: string
   textColor: string
+}
+
+type PromptRevisionSummary = {
+  id: string
+  prompt_text: string
+}
+
+type ProjectBundleResponse = {
+  diagram_version: DiagramVersionPublic | null
+  nodes?: DiagramNodePublic[]
+  edges?: DiagramEdgePublic[]
+  components?: ComponentItemPublic[]
+  prompt_revisions?: PromptRevisionSummary[]
+}
+
+type MarkdownExportResponse = {
+  content?: string
 }
 
 function nodeStyleByType(type: string): NodeStyle {
@@ -90,7 +112,7 @@ function CollapsibleSection({
   defaultOpen = false,
 }: {
   title: string
-  children: React.ReactNode
+  children: ReactNode
   defaultOpen?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -132,7 +154,7 @@ function DiagramCanvas({
 
   const nodeMap = new Map(nodes.map((n) => [n.id, n]))
 
-  function handleWheel(e: React.WheelEvent) {
+  function handleWheel(e: ReactWheelEvent<SVGSVGElement>) {
     e.preventDefault()
     const factor = e.deltaY > 0 ? 0.9 : 1.1
     setTransform((t) => ({
@@ -141,7 +163,7 @@ function DiagramCanvas({
     }))
   }
 
-  function handleMouseDown(e: React.MouseEvent) {
+  function handleMouseDown(e: ReactMouseEvent<SVGSVGElement>) {
     if (e.button !== 0) return
     setDragging(true)
     setDragStart({
@@ -152,7 +174,7 @@ function DiagramCanvas({
     })
   }
 
-  function handleMouseMove(e: React.MouseEvent) {
+  function handleMouseMove(e: ReactMouseEvent<SVGSVGElement>) {
     if (!dragging) return
     setTransform((t) => ({
       ...t,
@@ -380,6 +402,7 @@ function DiagramCanvas({
 function LeftPanel({
   projectTitle,
   projectId,
+  initialPrompt,
   onGenerate,
   onRefine,
   isPending,
@@ -388,6 +411,7 @@ function LeftPanel({
 }: {
   projectTitle: string
   projectId: string
+  initialPrompt: string
   onGenerate: (prompt: string) => void
   onRefine: (prompt: string) => void
   isPending: boolean
@@ -416,6 +440,10 @@ function LeftPanel({
   useEffect(() => {
     setTitleValue(projectTitle)
   }, [projectTitle])
+
+  useEffect(() => {
+    setPrompt(initialPrompt)
+  }, [initialPrompt])
 
   function handleTitleBlur() {
     setEditingTitle(false)
@@ -586,26 +614,24 @@ function RightPanel({
 }) {
   const [collapsed, setCollapsed] = useState(false)
 
+  function downloadMarkdown(content: string) {
+    const blob = new Blob([content], { type: "text/markdown" })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = "architecture-notes.md"
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
   async function handleExportMarkdown() {
     try {
-      await ProjectsService.exportMarkdown({ projectId })
-      // Download the notes as a file
-      const blob = new Blob([notes], { type: "text/markdown" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = "architecture-notes.md"
-      a.click()
-      URL.revokeObjectURL(url)
+      const response = (await ProjectsService.exportMarkdown({
+        projectId,
+      })) as MarkdownExportResponse
+      downloadMarkdown(response.content ?? notes)
     } catch {
-      // Fallback: just download current notes
-      const blob = new Blob([notes], { type: "text/markdown" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = "architecture-notes.md"
-      a.click()
-      URL.revokeObjectURL(url)
+      downloadMarkdown(notes)
     }
   }
 
@@ -756,6 +782,13 @@ function ArchitectureWorkspace() {
     queryKey: ["project", id],
     queryFn: () => ProjectsService.readProject({ projectId: id }),
   })
+  const { data: bundle } = useQuery({
+    queryKey: ["project-bundle", id],
+    queryFn: async () =>
+      (await ProjectsService.exportBundle({
+        projectId: id,
+      })) as ProjectBundleResponse,
+  })
 
   // Fetch versions
   const { data: versionsData } = useQuery({
@@ -776,10 +809,31 @@ function ArchitectureWorkspace() {
       setEdges(result.edges)
       setComponents(result.components)
       setNotes(result.diagram_version.notes_markdown ?? "")
+      queryClient.invalidateQueries({ queryKey: ["project", id] })
+      queryClient.invalidateQueries({ queryKey: ["project-bundle", id] })
       queryClient.invalidateQueries({ queryKey: ["project-versions", id] })
     },
     [id, queryClient],
   )
+
+  useEffect(() => {
+    if (!bundle) return
+    setNodes(bundle.nodes ?? [])
+    setEdges(bundle.edges ?? [])
+    setComponents(bundle.components ?? [])
+    setNotes(bundle.diagram_version?.notes_markdown ?? "")
+
+    const persistedPromptHistory =
+      bundle.prompt_revisions?.map((revision) => revision.prompt_text) ?? []
+    if (persistedPromptHistory.length > 0) {
+      setPromptHistory(persistedPromptHistory)
+      return
+    }
+
+    if (project?.current_prompt) {
+      setPromptHistory([project.current_prompt])
+    }
+  }, [bundle, project?.current_prompt])
 
   const generateMutation = useMutation({
     mutationFn: (req: GenerationRequest) =>
@@ -844,6 +898,7 @@ function ArchitectureWorkspace() {
       <LeftPanel
         projectTitle={project.title ?? ""}
         projectId={id}
+        initialPrompt={project.current_prompt ?? ""}
         onGenerate={handleGenerate}
         onRefine={handleRefine}
         isPending={isPending}

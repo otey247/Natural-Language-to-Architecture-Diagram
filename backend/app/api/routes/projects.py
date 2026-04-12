@@ -36,6 +36,7 @@ from app.models import (
     ProjectsPublic,
     ProjectUpdate,
     PromptRevision,
+    PromptRevisionPublic,
 )
 from app.services.generation import (
     GeneratedDiagram,
@@ -734,6 +735,14 @@ def delete_node(
             status_code=403, detail="Node does not belong to this project"
         )
 
+    edges = session.exec(
+        select(DiagramEdge).where(
+            (DiagramEdge.source_node_id == node_id)
+            | (DiagramEdge.target_node_id == node_id)
+        )
+    ).all()
+    for edge in edges:
+        session.delete(edge)
     session.delete(node)
     project.updated_at = datetime.now(timezone.utc)
     session.add(project)
@@ -882,9 +891,18 @@ def export_bundle(
 
     latest = _latest_version(session, project_id)
     if not latest:
+        prompt_revisions = session.exec(
+            select(PromptRevision)
+            .where(PromptRevision.project_id == project_id)
+            .order_by(col(PromptRevision.created_at).desc())
+        ).all()
         return {
             "project": ProjectPublic.model_validate(project).model_dump(),
             "diagram_version": None,
+            "prompt_revisions": [
+                PromptRevisionPublic.model_validate(revision).model_dump()
+                for revision in prompt_revisions
+            ],
         }
 
     nodes = session.exec(
@@ -896,6 +914,11 @@ def export_bundle(
     components = session.exec(
         select(ComponentItem).where(ComponentItem.diagram_version_id == latest.id)
     ).all()
+    prompt_revisions = session.exec(
+        select(PromptRevision)
+        .where(PromptRevision.project_id == project_id)
+        .order_by(col(PromptRevision.created_at).desc())
+    ).all()
 
     return {
         "project": ProjectPublic.model_validate(project).model_dump(),
@@ -904,5 +927,9 @@ def export_bundle(
         "edges": [DiagramEdgePublic.model_validate(e).model_dump() for e in edges],
         "components": [
             ComponentItemPublic.model_validate(c).model_dump() for c in components
+        ],
+        "prompt_revisions": [
+            PromptRevisionPublic.model_validate(revision).model_dump()
+            for revision in prompt_revisions
         ],
     }

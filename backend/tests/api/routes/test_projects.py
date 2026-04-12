@@ -6,20 +6,12 @@ import uuid
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, delete
+from sqlmodel import Session
 
 from app.core.config import settings
-from app.models import (
-    ComponentItem,
-    DiagramEdge,
-    DiagramNode,
-    DiagramVersion,
-    Project,
-    PromptRevision,
-    User,
-)
-from tests.utils.user import create_random_user, authentication_token_from_email
-from tests.utils.utils import random_lower_string, get_superuser_token_headers
+from app.models import User
+from tests.utils.user import create_random_user
+from tests.utils.utils import random_lower_string
 
 BASE = f"{settings.API_V1_STR}/projects"
 
@@ -569,6 +561,27 @@ class TestNodeCrud:
         assert resp.status_code == 200
         assert "deleted" in resp.json()["message"]
 
+    def test_delete_node_removes_connected_edges(
+        self, client: TestClient, superuser_token_headers: dict
+    ) -> None:
+        pid, source_id, target_id = TestEdgeCrud()._setup_with_nodes(
+            client, superuser_token_headers
+        )
+        edge = client.post(
+            f"{BASE}/{pid}/diagram/edges",
+            headers=superuser_token_headers,
+            json={"source_node_id": source_id, "target_node_id": target_id},
+        ).json()
+
+        resp = client.delete(
+            f"{BASE}/{pid}/diagram/nodes/{source_id}", headers=superuser_token_headers
+        )
+        assert resp.status_code == 200
+
+        bundle = client.post(f"{BASE}/{pid}/export/bundle", headers=superuser_token_headers)
+        edge_ids = {item["id"] for item in bundle.json()["edges"]}
+        assert edge["id"] not in edge_ids
+
     def test_delete_node_not_found(
         self, client: TestClient, superuser_token_headers: dict
     ) -> None:
@@ -743,6 +756,7 @@ class TestExport:
         assert "nodes" in data
         assert "edges" in data
         assert "components" in data
+        assert "prompt_revisions" in data
 
     def test_export_bundle_empty_project(
         self, client: TestClient, superuser_token_headers: dict
@@ -753,6 +767,7 @@ class TestExport:
         )
         assert resp.status_code == 200
         assert resp.json()["diagram_version"] is None
+        assert resp.json()["prompt_revisions"] == []
 
     def test_export_not_found(
         self, client: TestClient, superuser_token_headers: dict

@@ -482,7 +482,6 @@ def generate_edges(nodes: list[RawNode]) -> list[RawEdge]:
     def edge(src: RawNode, dst: RawNode, label: str = "") -> None:
         edges.append(RawEdge(source_id=src.id, target_id=dst.id, label=label))
 
-    _find_by_type(nodes, "cdn", "load_balancer", "api_gateway")
     gateways = _find_all_by_type(nodes, "api_gateway", "load_balancer")
     firewall = _find_by_type(nodes, "firewall")
     computes = _find_all_by_type(nodes, "kubernetes", "serverless", "vm", "app_server")

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from pydantic import EmailStr
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -232,6 +232,14 @@ class DiagramVersionBase(SQLModel):
 
 
 class DiagramVersion(DiagramVersionBase, table=True):
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id",
+            "version_number",
+            name="uq_diagramversion_project_id_version_number",
+        ),
+    )
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     project_id: uuid.UUID = Field(
         foreign_key="project.id", nullable=False, ondelete="CASCADE"
@@ -310,8 +318,12 @@ class DiagramNodePublic(DiagramNodeBase):
 
 
 class DiagramEdgeBase(SQLModel):
-    source_node_id: uuid.UUID
-    target_node_id: uuid.UUID
+    source_node_id: uuid.UUID = Field(
+        foreign_key="diagramnode.id", ondelete="CASCADE", index=True
+    )
+    target_node_id: uuid.UUID = Field(
+        foreign_key="diagramnode.id", ondelete="CASCADE", index=True
+    )
     label: str | None = Field(default=None, max_length=255)
     metadata_json: str | None = Field(default=None)
 
