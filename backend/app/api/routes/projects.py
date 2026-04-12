@@ -83,6 +83,18 @@ def _next_version_number(session: SessionDep, project_id: uuid.UUID) -> int:
     return (result or 0) + 1
 
 
+def _prompt_revisions_for_project(
+    session: SessionDep, project_id: uuid.UUID
+) -> list[PromptRevision]:
+    return list(
+        session.exec(
+            select(PromptRevision)
+            .where(PromptRevision.project_id == project_id)
+            .order_by(col(PromptRevision.created_at).desc())
+        ).all()
+    )
+
+
 def _persist_generation(
     session: SessionDep,
     project: Project,
@@ -882,12 +894,8 @@ def export_bundle(
     _require_owner(project, current_user)
 
     latest = _latest_version(session, project_id)
+    prompt_revisions = _prompt_revisions_for_project(session, project_id)
     if not latest:
-        prompt_revisions = session.exec(
-            select(PromptRevision)
-            .where(PromptRevision.project_id == project_id)
-            .order_by(col(PromptRevision.created_at).desc())
-        ).all()
         return {
             "project": ProjectPublic.model_validate(project).model_dump(),
             "diagram_version": None,
@@ -905,11 +913,6 @@ def export_bundle(
     ).all()
     components = session.exec(
         select(ComponentItem).where(ComponentItem.diagram_version_id == latest.id)
-    ).all()
-    prompt_revisions = session.exec(
-        select(PromptRevision)
-        .where(PromptRevision.project_id == project_id)
-        .order_by(col(PromptRevision.created_at).desc())
     ).all()
 
     return {
