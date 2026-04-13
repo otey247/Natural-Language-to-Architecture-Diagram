@@ -57,6 +57,583 @@ export const Body_login_login_access_tokenSchema = {
     title: 'Body_login-login_access_token'
 } as const;
 
+export const ComponentItemPublicSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Name'
+        },
+        component_type: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Component Type'
+        },
+        provider: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Provider'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        role_summary: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Role Summary'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        diagram_version_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Diagram Version Id'
+        }
+    },
+    type: 'object',
+    required: ['name', 'component_type', 'id', 'diagram_version_id'],
+    title: 'ComponentItemPublic'
+} as const;
+
+export const DiagramEdgeCreateSchema = {
+    properties: {
+        source_node_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Source Node Id'
+        },
+        target_node_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Target Node Id'
+        },
+        label: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Label'
+        },
+        metadata_json: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Metadata Json'
+        }
+    },
+    type: 'object',
+    required: ['source_node_id', 'target_node_id'],
+    title: 'DiagramEdgeCreate'
+} as const;
+
+export const DiagramEdgePublicSchema = {
+    properties: {
+        source_node_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Source Node Id'
+        },
+        target_node_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Target Node Id'
+        },
+        label: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Label'
+        },
+        metadata_json: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Metadata Json'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        diagram_version_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Diagram Version Id'
+        }
+    },
+    type: 'object',
+    required: ['source_node_id', 'target_node_id', 'id', 'diagram_version_id'],
+    title: 'DiagramEdgePublic'
+} as const;
+
+export const DiagramEdgeUpdateSchema = {
+    properties: {
+        label: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Label'
+        },
+        metadata_json: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Metadata Json'
+        }
+    },
+    type: 'object',
+    title: 'DiagramEdgeUpdate'
+} as const;
+
+export const DiagramJsonUpdateSchema = {
+    properties: {
+        diagram_json: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Diagram Json'
+        },
+        layout_json: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Layout Json'
+        },
+        notes_markdown: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes Markdown'
+        }
+    },
+    type: 'object',
+    title: 'DiagramJsonUpdate'
+} as const;
+
+export const DiagramNodeCreateSchema = {
+    properties: {
+        label: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Label'
+        },
+        node_type: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Node Type'
+        },
+        provider: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Provider'
+        },
+        metadata_json: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Metadata Json'
+        },
+        x_position: {
+            type: 'number',
+            title: 'X Position',
+            default: 0
+        },
+        y_position: {
+            type: 'number',
+            title: 'Y Position',
+            default: 0
+        }
+    },
+    type: 'object',
+    required: ['label', 'node_type'],
+    title: 'DiagramNodeCreate'
+} as const;
+
+export const DiagramNodePublicSchema = {
+    properties: {
+        label: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Label'
+        },
+        node_type: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Node Type'
+        },
+        provider: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Provider'
+        },
+        metadata_json: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Metadata Json'
+        },
+        x_position: {
+            type: 'number',
+            title: 'X Position',
+            default: 0
+        },
+        y_position: {
+            type: 'number',
+            title: 'Y Position',
+            default: 0
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        diagram_version_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Diagram Version Id'
+        }
+    },
+    type: 'object',
+    required: ['label', 'node_type', 'id', 'diagram_version_id'],
+    title: 'DiagramNodePublic'
+} as const;
+
+export const DiagramNodeUpdateSchema = {
+    properties: {
+        label: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Label'
+        },
+        node_type: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Node Type'
+        },
+        provider: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Provider'
+        },
+        metadata_json: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Metadata Json'
+        },
+        x_position: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'X Position'
+        },
+        y_position: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Y Position'
+        }
+    },
+    type: 'object',
+    title: 'DiagramNodeUpdate'
+} as const;
+
+export const DiagramVersionPublicSchema = {
+    properties: {
+        version_number: {
+            type: 'integer',
+            title: 'Version Number',
+            default: 1
+        },
+        diagram_json: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Diagram Json'
+        },
+        layout_json: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Layout Json'
+        },
+        notes_markdown: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes Markdown'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        project_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Project Id'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'project_id'],
+    title: 'DiagramVersionPublic'
+} as const;
+
+export const DiagramVersionsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/DiagramVersionPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'DiagramVersionsPublic'
+} as const;
+
+export const GenerationRequestSchema = {
+    properties: {
+        prompt: {
+            type: 'string',
+            maxLength: 4096,
+            minLength: 1,
+            title: 'Prompt'
+        },
+        cloud_context: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cloud Context'
+        },
+        diagram_type: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Diagram Type'
+        }
+    },
+    type: 'object',
+    required: ['prompt'],
+    title: 'GenerationRequest'
+} as const;
+
+export const GenerationResultSchema = {
+    properties: {
+        diagram_version: {
+            '$ref': '#/components/schemas/DiagramVersionPublic'
+        },
+        nodes: {
+            items: {
+                '$ref': '#/components/schemas/DiagramNodePublic'
+            },
+            type: 'array',
+            title: 'Nodes'
+        },
+        edges: {
+            items: {
+                '$ref': '#/components/schemas/DiagramEdgePublic'
+            },
+            type: 'array',
+            title: 'Edges'
+        },
+        components: {
+            items: {
+                '$ref': '#/components/schemas/ComponentItemPublic'
+            },
+            type: 'array',
+            title: 'Components'
+        },
+        notes_markdown: {
+            type: 'string',
+            title: 'Notes Markdown'
+        }
+    },
+    type: 'object',
+    required: ['diagram_version', 'nodes', 'edges', 'components', 'notes_markdown'],
+    title: 'GenerationResult'
+} as const;
+
 export const HTTPValidationErrorSchema = {
     properties: {
         detail: {
@@ -249,6 +826,251 @@ export const PrivateUserCreateSchema = {
     type: 'object',
     required: ['email', 'password', 'full_name'],
     title: 'PrivateUserCreate'
+} as const;
+
+export const ProjectCreateSchema = {
+    properties: {
+        title: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Title'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        current_prompt: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 4096
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Current Prompt'
+        },
+        cloud_context: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cloud Context'
+        },
+        diagram_type: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Diagram Type'
+        }
+    },
+    type: 'object',
+    required: ['title'],
+    title: 'ProjectCreate'
+} as const;
+
+export const ProjectPublicSchema = {
+    properties: {
+        title: {
+            type: 'string',
+            maxLength: 255,
+            minLength: 1,
+            title: 'Title'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        current_prompt: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 4096
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Current Prompt'
+        },
+        cloud_context: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cloud Context'
+        },
+        diagram_type: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Diagram Type'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        owner_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Owner Id'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['title', 'id', 'owner_id'],
+    title: 'ProjectPublic'
+} as const;
+
+export const ProjectUpdateSchema = {
+    properties: {
+        title: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Title'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 1024
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        current_prompt: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 4096
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Current Prompt'
+        },
+        cloud_context: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Cloud Context'
+        },
+        diagram_type: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Diagram Type'
+        }
+    },
+    type: 'object',
+    title: 'ProjectUpdate'
+} as const;
+
+export const ProjectsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/ProjectPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'ProjectsPublic'
 } as const;
 
 export const TokenSchema = {

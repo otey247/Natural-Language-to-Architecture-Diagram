@@ -9,6 +9,101 @@ export type Body_login_login_access_token = {
     client_secret?: (string | null);
 };
 
+export type ComponentItemPublic = {
+    name: string;
+    component_type: string;
+    provider?: (string | null);
+    description?: (string | null);
+    role_summary?: (string | null);
+    id: string;
+    diagram_version_id: string;
+};
+
+export type DiagramEdgeCreate = {
+    source_node_id: string;
+    target_node_id: string;
+    label?: (string | null);
+    metadata_json?: (string | null);
+};
+
+export type DiagramEdgePublic = {
+    source_node_id: string;
+    target_node_id: string;
+    label?: (string | null);
+    metadata_json?: (string | null);
+    id: string;
+    diagram_version_id: string;
+};
+
+export type DiagramEdgeUpdate = {
+    label?: (string | null);
+    metadata_json?: (string | null);
+};
+
+export type DiagramJsonUpdate = {
+    diagram_json?: (string | null);
+    layout_json?: (string | null);
+    notes_markdown?: (string | null);
+};
+
+export type DiagramNodeCreate = {
+    label: string;
+    node_type: string;
+    provider?: (string | null);
+    metadata_json?: (string | null);
+    x_position?: number;
+    y_position?: number;
+};
+
+export type DiagramNodePublic = {
+    label: string;
+    node_type: string;
+    provider?: (string | null);
+    metadata_json?: (string | null);
+    x_position?: number;
+    y_position?: number;
+    id: string;
+    diagram_version_id: string;
+};
+
+export type DiagramNodeUpdate = {
+    label?: (string | null);
+    node_type?: (string | null);
+    provider?: (string | null);
+    metadata_json?: (string | null);
+    x_position?: (number | null);
+    y_position?: (number | null);
+};
+
+export type DiagramVersionPublic = {
+    version_number?: number;
+    diagram_json?: (string | null);
+    layout_json?: (string | null);
+    notes_markdown?: (string | null);
+    id: string;
+    project_id: string;
+    created_at?: (string | null);
+};
+
+export type DiagramVersionsPublic = {
+    data: Array<DiagramVersionPublic>;
+    count: number;
+};
+
+export type GenerationRequest = {
+    prompt: string;
+    cloud_context?: (string | null);
+    diagram_type?: (string | null);
+};
+
+export type GenerationResult = {
+    diagram_version: DiagramVersionPublic;
+    nodes: Array<DiagramNodePublic>;
+    edges: Array<DiagramEdgePublic>;
+    components: Array<ComponentItemPublic>;
+    notes_markdown: string;
+};
+
 export type HTTPValidationError = {
     detail?: Array<ValidationError>;
 };
@@ -50,6 +145,39 @@ export type PrivateUserCreate = {
     password: string;
     full_name: string;
     is_verified?: boolean;
+};
+
+export type ProjectCreate = {
+    title: string;
+    description?: (string | null);
+    current_prompt?: (string | null);
+    cloud_context?: (string | null);
+    diagram_type?: (string | null);
+};
+
+export type ProjectPublic = {
+    title: string;
+    description?: (string | null);
+    current_prompt?: (string | null);
+    cloud_context?: (string | null);
+    diagram_type?: (string | null);
+    id: string;
+    owner_id: string;
+    created_at?: (string | null);
+    updated_at?: (string | null);
+};
+
+export type ProjectsPublic = {
+    data: Array<ProjectPublic>;
+    count: number;
+};
+
+export type ProjectUpdate = {
+    title?: (string | null);
+    description?: (string | null);
+    current_prompt?: (string | null);
+    cloud_context?: (string | null);
+    diagram_type?: (string | null);
 };
 
 export type Token = {
@@ -176,6 +304,160 @@ export type PrivateCreateUserData = {
 };
 
 export type PrivateCreateUserResponse = (UserPublic);
+
+export type ProjectsListProjectsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type ProjectsListProjectsResponse = (ProjectsPublic);
+
+export type ProjectsCreateProjectData = {
+    requestBody: ProjectCreate;
+};
+
+export type ProjectsCreateProjectResponse = (ProjectPublic);
+
+export type ProjectsReadProjectData = {
+    projectId: string;
+};
+
+export type ProjectsReadProjectResponse = (ProjectPublic);
+
+export type ProjectsUpdateProjectData = {
+    projectId: string;
+    requestBody: ProjectUpdate;
+};
+
+export type ProjectsUpdateProjectResponse = (ProjectPublic);
+
+export type ProjectsDeleteProjectData = {
+    projectId: string;
+};
+
+export type ProjectsDeleteProjectResponse = (Message);
+
+export type ProjectsDuplicateProjectData = {
+    projectId: string;
+};
+
+export type ProjectsDuplicateProjectResponse = (ProjectPublic);
+
+export type ProjectsGenerateDiagramData = {
+    projectId: string;
+    requestBody: GenerationRequest;
+};
+
+export type ProjectsGenerateDiagramResponse = (GenerationResult);
+
+export type ProjectsRefineDiagramData = {
+    projectId: string;
+    requestBody: GenerationRequest;
+};
+
+export type ProjectsRefineDiagramResponse = (GenerationResult);
+
+export type ProjectsRegenerateNotesData = {
+    projectId: string;
+};
+
+export type ProjectsRegenerateNotesResponse = (Message);
+
+export type ProjectsRegenerateComponentsData = {
+    projectId: string;
+};
+
+export type ProjectsRegenerateComponentsResponse = (Array<ComponentItemPublic>);
+
+export type ProjectsListVersionsData = {
+    limit?: number;
+    projectId: string;
+    skip?: number;
+};
+
+export type ProjectsListVersionsResponse = (DiagramVersionsPublic);
+
+export type ProjectsRestoreVersionData = {
+    projectId: string;
+    versionId: string;
+};
+
+export type ProjectsRestoreVersionResponse = (DiagramVersionPublic);
+
+export type ProjectsUpdateDiagramJsonData = {
+    projectId: string;
+    requestBody: DiagramJsonUpdate;
+};
+
+export type ProjectsUpdateDiagramJsonResponse = (DiagramVersionPublic);
+
+export type ProjectsAddNodeData = {
+    projectId: string;
+    requestBody: DiagramNodeCreate;
+};
+
+export type ProjectsAddNodeResponse = (DiagramNodePublic);
+
+export type ProjectsUpdateNodeData = {
+    nodeId: string;
+    projectId: string;
+    requestBody: DiagramNodeUpdate;
+};
+
+export type ProjectsUpdateNodeResponse = (DiagramNodePublic);
+
+export type ProjectsDeleteNodeData = {
+    nodeId: string;
+    projectId: string;
+};
+
+export type ProjectsDeleteNodeResponse = (Message);
+
+export type ProjectsAddEdgeData = {
+    projectId: string;
+    requestBody: DiagramEdgeCreate;
+};
+
+export type ProjectsAddEdgeResponse = (DiagramEdgePublic);
+
+export type ProjectsUpdateEdgeData = {
+    edgeId: string;
+    projectId: string;
+    requestBody: DiagramEdgeUpdate;
+};
+
+export type ProjectsUpdateEdgeResponse = (DiagramEdgePublic);
+
+export type ProjectsDeleteEdgeData = {
+    edgeId: string;
+    projectId: string;
+};
+
+export type ProjectsDeleteEdgeResponse = (Message);
+
+export type ProjectsExportMarkdownData = {
+    projectId: string;
+};
+
+export type ProjectsExportMarkdownResponse = (unknown);
+
+export type ProjectsExportPngData = {
+    projectId: string;
+};
+
+export type ProjectsExportPngResponse = (unknown);
+
+export type ProjectsExportSvgData = {
+    projectId: string;
+};
+
+export type ProjectsExportSvgResponse = (unknown);
+
+export type ProjectsExportBundleData = {
+    projectId: string;
+};
+
+export type ProjectsExportBundleResponse = (unknown);
 
 export type UsersReadUsersData = {
     limit?: number;

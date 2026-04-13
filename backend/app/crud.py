@@ -1,10 +1,20 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlmodel import Session, select
 
 from app.core.security import get_password_hash, verify_password
-from app.models import Item, ItemCreate, User, UserCreate, UserUpdate
+from app.models import (
+    Item,
+    ItemCreate,
+    Project,
+    ProjectCreate,
+    ProjectUpdate,
+    User,
+    UserCreate,
+    UserUpdate,
+)
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
@@ -66,3 +76,59 @@ def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -
     session.commit()
     session.refresh(db_item)
     return db_item
+
+
+# ---------------------------------------------------------------------------
+# Project CRUD
+# ---------------------------------------------------------------------------
+
+
+def create_project(
+    *, session: Session, project_in: ProjectCreate, owner_id: uuid.UUID
+) -> Project:
+    db_project = Project.model_validate(project_in, update={"owner_id": owner_id})
+    session.add(db_project)
+    session.commit()
+    session.refresh(db_project)
+    return db_project
+
+
+def get_project(*, session: Session, project_id: uuid.UUID) -> Project | None:
+    return session.get(Project, project_id)
+
+
+def get_projects(
+    *, session: Session, owner_id: uuid.UUID, skip: int = 0, limit: int = 100
+) -> tuple[list[Project], int]:
+    from sqlmodel import col, func
+
+    count_stmt = (
+        select(func.count()).select_from(Project).where(Project.owner_id == owner_id)
+    )
+    count = session.exec(count_stmt).one()
+    stmt = (
+        select(Project)
+        .where(Project.owner_id == owner_id)
+        .order_by(col(Project.created_at).desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    projects = list(session.exec(stmt).all())
+    return projects, count
+
+
+def update_project(
+    *, session: Session, db_project: Project, project_in: ProjectUpdate
+) -> Project:
+    update_data = project_in.model_dump(exclude_unset=True)
+    update_data["updated_at"] = datetime.now(timezone.utc)
+    db_project.sqlmodel_update(update_data)
+    session.add(db_project)
+    session.commit()
+    session.refresh(db_project)
+    return db_project
+
+
+def delete_project(*, session: Session, db_project: Project) -> None:
+    session.delete(db_project)
+    session.commit()
